@@ -52,6 +52,11 @@ export async function requestReview(article, policy, apiKey, fetchImpl = fetch) 
   if (!response.ok) {
     const error = new Error(`Gemini HTTP ${response.status}`);
     error.status = response.status;
+    const detail = await response.json().catch(() => ({}));
+    const message = String(detail.error?.message || '').toLowerCase();
+    error.provider_reason = /overload|high demand|capacity/.test(message) ? 'capacity'
+      : /model.*not found|model.*not supported/.test(message) ? 'model_unavailable'
+      : /api key/.test(message) ? 'api_key' : 'unspecified';
     throw error;
   }
   const payload = await response.json();
@@ -87,7 +92,7 @@ export async function reviewArticles({ articles, reviewDir, policy, config, fetc
       completed++;
       console.log(`Reviewed ${completed}/${articles.length}: ${article.company}`);
     } catch (error) {
-      if (error.status === 429 || error.status >= 500) return { status: 'paused', reason: error.status === 429 ? 'quota' : 'provider_unavailable', requests, cached, completed, total: articles.length };
+      if (error.status === 429 || error.status >= 500) return { status: 'paused', reason: error.status === 429 ? 'quota' : 'provider_unavailable', http_status: error.status, provider_reason: error.provider_reason, requests, cached, completed, total: articles.length };
       throw error;
     }
   }
