@@ -65,6 +65,11 @@ export async function requestReview(article, policy, apiKey, fetchImpl = fetch) 
   const text = candidate.content?.parts?.filter(p => !p.thought).map(p => p.text || '').join('');
   let parsed;
   try { parsed = JSON.parse(text); } catch { throw new Error('Gemini returned invalid JSON'); }
+  // Business activity has no investment-stage test. These are contract constants,
+  // not model judgements; entity, technology, concrete activity and quotes still gate approval.
+  if (Array.isArray(parsed.decisions)) parsed.decisions = parsed.decisions.map(decision =>
+    article.candidates.some(c => c.id === decision.candidate_id && c.kind === 'relevant')
+      ? { ...decision, leading_indicator_supported: true, event_stage: 'not_applicable' } : decision);
   const review = { article_id: article.id, reviewer: `${MODEL}/${VERSION}`, provider: 'gemini', decisions: parsed.decisions, usage: payload.usageMetadata || {} };
   importReview(article, review);
   return review;

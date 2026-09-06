@@ -77,3 +77,12 @@ test('provider outages expose only the HTTP code and safe reason, and stop after
   assert.equal(state.provider_reason, 'capacity');
   assert.equal(JSON.stringify(state).includes('private provider detail'), false);
 });
+
+test('business non-applicable fields are constants without bypassing the activity gate', async () => {
+  const original = article('A').candidates[0].row;
+  const a = groupArticles([], [original], { from_date: '2026-08-01', to_date: '2026-08-31' })[0];
+  const review = await requestReview(a, '', 'key', async () => response([{ ...decisions[0], candidate_id: 'relevant', indicator_supported: false, leading_indicator_supported: false, event_stage: 'unclear', summary_ko: '', summary_en: '' }]));
+  assert.equal(review.decisions[0].event_stage, 'not_applicable');
+  assert.equal(review.decisions[0].leading_indicator_supported, true);
+  assert.equal(review.decisions[0].indicator_supported, false);
+});
