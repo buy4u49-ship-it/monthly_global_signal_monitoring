@@ -153,4 +153,19 @@ async function main() {
   await fs.rm(reportDir, { recursive: true, force: true });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(error => { console.error(error.message); process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(async error => {
+  console.error(error.message);
+  if (error.status === 404) {
+    // Metadata-only request: report available model IDs, never select a paid fallback.
+    try {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+        headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY }, signal: AbortSignal.timeout(15000),
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        console.error('Available Flash models:', (payload.models || []).filter(m => m.name?.includes('flash') && m.supportedGenerationMethods?.includes('generateContent')).map(m => m.name).join(', '));
+      }
+    } catch { console.error('Model metadata unavailable'); }
+  }
+  process.exitCode = 1;
+});
