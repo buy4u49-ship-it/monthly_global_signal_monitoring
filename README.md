@@ -150,3 +150,7 @@ Local preparation now includes **every dated source article in the requested mon
 `ai_event_stage=precursor` denotes a verified enabling activity under indicators 1, 3, 4 or 5 (supply-chain action, investment financing, specific R&D collaboration or strategic personnel activity). Its announcement may be complete while a final investment remains unconfirmed. Final committed/completed investment projects remain excluded, and production expansion (indicator 2) cannot use `precursor`. Entity and technology requirements remain in force. The investment API prompt version is bumped to invalidate old decisions; local policy fingerprints also change.
 
 A local build writes `coverage.json` alongside its PDFs. Missing monthly sources and `needs_review` evidence are distinguished from reviewed negative results in the matrix counts. Google News fallback now checks usable monthly evidence **after** official detail/date enrichment. Live collection success still depends on the source sites.
+
+### Gemini 무료 API로 GitHub Actions 실행
+
+`collect-company-signals`는 `GEMINI_API_KEY`로 기사별 통합 분석과 한·영 PDF 생성을 수행한다. Google 프로젝트가 Free Tier임을 확인한 뒤 Actions Variable `GEMINI_FREE_TIER_CONFIRMED=true`를 설정해야 한다. 기본 40건씩 처리하고 한도에 도달하면 저장 후 중단하며, 같은 기간으로 재실행하면 이어간다. 설정·제약·PDF 다운로드 방법은 [Gemini 무료 보고서 실행 안내](docs/gemini_free_report.md)를 참고한다.

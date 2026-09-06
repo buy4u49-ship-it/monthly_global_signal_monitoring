@@ -12,3 +12,4 @@ outputs/*_20*.csv
 scripts/__pycache__/
 outputs/local_reports/
 .DS_Store
+outputs/gemini_work/

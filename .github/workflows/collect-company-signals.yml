@@ -20,9 +20,14 @@ on:
         required: false
         default: "2"
 
+      refresh:
+        description: "Recollect sources instead of resuming the saved collection"
+        type: boolean
+        default: false
+
 concurrency:
   group: collect-company-signals-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   collect:
@@ -72,95 +77,48 @@ jobs:
           echo "from_date=$from_date" >> "$GITHUB_OUTPUT"
           echo "to_date=$to_date" >> "$GITHUB_OUTPUT"
           echo "Reporting period: $from_date .. $to_date"
-      - run: >
-          node scripts/collect_company_signals.mjs
-          --companies data/target_companies.json
-          --source-config config/company_sources.json
-          --out-dir outputs
-          --sources official_feeds,official_pages,google_news
-          --days ${{ inputs.days || '45' }}
-          --from-date ${{ steps.report_period.outputs.from_date }}
-          --to-date ${{ steps.report_period.outputs.to_date }}
-          --max-per-source 6
-          --max-per-company 10
-          --max-detail-per-company 10
-          --fallback-mode missing
-          --fallback-min-results 1
-          --rate-limit-seconds 0.5
-          --company-concurrency 4
-      - run: >
-          node scripts/filter_relevant_signals.mjs
-          --signals outputs/latest_company_signals.json
-          --technology-map data/company_technology_map.json
-          --keyword-config config/technology_keywords.json
-          --out-dir outputs
-          --threshold 1
-      - run: >
-          node scripts/classify_investment_signals.mjs
-          --signals outputs/latest_company_signals.json
-          --technology-classification outputs/latest_signal_relevance_classification.json
-          --indicator-config config/investment_signal_indicators.json
-          --out-dir outputs
-          --threshold 4
-          --require-technology-relevance true
-      - run: >
-          node scripts/summarize_signal_evidence.mjs
-          --investment-signals outputs/latest_investment_signals.json
-          --relevant-signals outputs/latest_relevant_signals.json
-          --out-dir outputs
-          --optional false
+      - name: Restore Gemini progress
+        uses: actions/cache/restore@v4
+        with:
+          path: outputs/gemini_work
+          key: gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-
+      - name: Analyze articles with Gemini and build both PDFs
+        id: gemini
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          AI_SUMMARY_LUNA_MODEL: ${{ vars.AI_SUMMARY_LUNA_MODEL || 'gpt-5.6-luna' }}
-          AI_SUMMARY_TERRA_MODEL: ${{ vars.AI_SUMMARY_TERRA_MODEL || 'gpt-5.6-terra' }}
-          AI_SUMMARY_REASONING_EFFORT: ${{ vars.AI_SUMMARY_REASONING_EFFORT || 'low' }}
-          AI_SUMMARY_MAX_OUTPUT_TOKENS: ${{ vars.AI_SUMMARY_MAX_OUTPUT_TOKENS || '1600' }}
-          AI_SUMMARY_RETRY_MAX_OUTPUT_TOKENS: ${{ vars.AI_SUMMARY_RETRY_MAX_OUTPUT_TOKENS || '3200' }}
-          AI_SUMMARY_RELEVANT_SIGNALS: ${{ vars.AI_SUMMARY_RELEVANT_SIGNALS || 'true' }}
-      - name: Validate report inputs (fail closed)
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED }}
+          GEMINI_MAX_REQUESTS: ${{ vars.GEMINI_MAX_REQUESTS || '40' }}
+          GEMINI_DELAY_MS: ${{ vars.GEMINI_DELAY_MS || '15000' }}
+          REPORT_FROM_DATE: ${{ steps.report_period.outputs.from_date }}
+          REPORT_TO_DATE: ${{ steps.report_period.outputs.to_date }}
+          REPORT_ISSUE_NUMBER: ${{ inputs.issue_number || '2' }}
+          REPORT_REFRESH: ${{ inputs.refresh || 'false' }}
+        run: node scripts/gemini_report.mjs
+      - name: Save Gemini progress even when quota is exhausted
+        if: ${{ always() && steps.gemini.outcome != 'skipped' }}
+        uses: actions/cache/save@v4
+        with:
+          path: outputs/gemini_work
+          key: gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Upload progress and results for inspection
+        if: ${{ always() && steps.gemini.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/gemini_work
+          retention-days: 30
+          if-no-files-found: ignore
+      - name: Validate report inputs
         run: node scripts/validate_report_inputs.mjs
-      - run: >
-          python scripts/build_pdf_report.py
-          --signals outputs/latest_company_signals.json
-          --summary outputs/latest_collection_summary.json
-          --relevant outputs/latest_relevant_signals.json
-          --relevance-summary outputs/latest_relevance_summary.json
-          --investment-signals outputs/latest_investment_signals.json
-          --investment-summary outputs/latest_investment_signal_summary.json
-          --indicator-config config/investment_signal_indicators.json
-          --font assets/fonts/NOTOSANSKR-VF.TTF
-          --issue-number ${{ inputs.issue_number || '2' }}
-          --lang ko
-          --out public/reports/latest_report.pdf
-      - name: Build English report
-        run: >
-          python scripts/build_pdf_report.py
-          --signals outputs/latest_company_signals.json
-          --summary outputs/latest_collection_summary.json
-          --relevant outputs/latest_relevant_signals.json
-          --relevance-summary outputs/latest_relevance_summary.json
-          --investment-signals outputs/latest_investment_signals.json
-          --investment-summary outputs/latest_investment_signal_summary.json
-          --indicator-config config/investment_signal_indicators.json
-          --font assets/fonts/NOTOSANSKR-VF.TTF
-          --issue-number ${{ inputs.issue_number || '2' }}
-          --lang en
-          --out public/reports/latest_report_en.pdf
-      - name: Sync latest main before committing generated outputs
-        run: git pull --rebase --autostash origin main
+      - name: Downloadable bilingual PDFs
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-report-pdfs-${{ github.run_id }}
+          path: public/reports/latest_report*.pdf
+          retention-days: 30
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Update company signal data and signal filters"
-          file_pattern: outputs/latest_*.json outputs/latest_*.csv outputs/ai_summary_cache.json public/reports/latest_report.pdf public/reports/latest_report_en.pdf
-      # 게시 검증이나 PDF 단계에서 멈춰도 이미 계산한 AI 판정 캐시는 남긴다.
-      # 캐시를 잃으면 다음 실행이 같은 행을 전량 재평가해 15분 가까이 반복한다.
-      # 성공한 실행은 위 단계가 캐시까지 함께 커밋하므로 이 단계는 실패할 때만 돈다.
-      - name: Sync latest main before preserving the cache
-        if: failure()
-        run: git pull --rebase --autostash origin main
-      - name: Preserve AI summary cache from the failed run
-        if: failure()
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "Preserve AI summary cache from a failed run"
-          file_pattern: outputs/ai_summary_cache.json
+          commit_message: "Update Gemini company signals and bilingual reports"
+          file_pattern: outputs/latest_*.json public/reports/latest_report.pdf public/reports/latest_report_en.pdf

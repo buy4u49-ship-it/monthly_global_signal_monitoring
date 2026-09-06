@@ -143,7 +143,7 @@ export function importReview(article, review) {
         ai_event_stage: decision.event_stage, ai_summary_quality: decision.quality,
         ai_summary_reason: clean(decision.reason_ko),
         ai_summary_ko: clean(decision.summary_ko), ai_summary_en: clean(decision.summary_en),
-        ai_summary_source: "local_agent_review", ai_summary_reviewer: review.reviewer,
+        ai_summary_source: review.provider === "gemini" ? "gemini_article_review" : "local_agent_review", ai_summary_reviewer: review.reviewer,
         ai_summary_cache_key: article.id, ai_evidence_quotes: quotes,
       };
       const errors = validateRows([row], candidate.kind);
@@ -242,7 +242,7 @@ async function status(runDir) {
   return pending.length === 0 && invalid.length === 0;
 }
 
-async function build(args) {
+export async function build(args) {
   const runDir = path.resolve(args.runDir);
   const { snapshot, pending, invalid, results, reviews } = await loadReviews(runDir);
   if (pending.length || invalid.length) {
@@ -287,6 +287,7 @@ async function build(args) {
       reviewed_candidates: results.length, approved_investment: investment.length, approved_business: relevant.length,
       incomplete_companies: coverage.filter((item) => item.status !== "reviewed").length,
       rejected_candidates: results.filter((item) => !item.supported).length }, null, 2));
+    return buildDir;
   } catch (error) {
     await fs.rm(buildDir, { recursive: true, force: true });
     throw error;

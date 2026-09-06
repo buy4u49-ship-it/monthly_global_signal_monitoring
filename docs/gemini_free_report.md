@@ -1,0 +1,32 @@
+# Gemini 무료 API 보고서 실행
+
+기존 `collect-company-signals.yml` 실행을 Gemini 기사별 분석으로 변경했다. `OPENAI_API_KEY`를 사용하거나 유료 모델로 전환하지 않는다. 키워드 필터 탈락분을 포함한 기간 내 모든 기사를 검토하며, 기사당 한 번의 요청으로 투자지표 5개와 사업동향을 판단한다. 검증된 한·영 문안은 기존 PDF 생성기로 출력한다.
+
+## 최초 설정
+
+- GitHub Actions Secret: `GEMINI_API_KEY` (등록 확인 완료).
+- Google AI Studio에서 키가 속한 프로젝트가 **결제를 연결하지 않은 Free Tier**인지 확인한다. 그 다음 GitHub Actions **Variable** `GEMINI_FREE_TIER_CONFIRMED`를 `true`로 설정한다. 이 값이 없으면 크롤링·API 호출 전에 종료한다.
+- 모델은 `gemini-3.8-flash`로 고정했다. 2026-09-07 Google 공식 가격표의 Standard Free Tier 대상이다. 무료 모델이라도 유료 프로젝트 키로 호출하면 과금될 수 있다. 코드나 API 키 이름으로 결제 상태를 판별할 수 없다. 결제를 연결할 경우 확인 변수를 해제하고 재검토해야 한다.
+- 무료 서비스에는 입력의 제품 개선 사용 조건이 있다. 공개 기사와 분석에 필요한 기업·기술·지표 기준을 전송한다. 비공개 내부 전략 자료는 입력하지 않는다.
+
+공식 근거: [가격표](https://ai.google.dev/gemini-api/docs/pricing), [할당량](https://ai.google.dev/gemini-api/docs/rate-limits), [구조화 응답](https://ai.google.dev/gemini-api/docs/structured-output).
+
+## 실행과 이어가기
+
+1. GitHub Actions에서 `collect-company-signals`를 실행한다. 이번 변경을 시험할 때는 `feat/local-monthly-report` 브랜치를 선택한다. 날짜를 비우면 직전 달을 사용한다.
+2. 기본적으로 저장된 같은 기간 원문을 재사용한다. 처음에는 크롤링한다. `refresh=true`는 원문을 새로 수집한다. 이어가기에는 `false`를 유지한다.
+3. 한 번 실행할 때 새 API 요청은 기본 최대 40건, 요청 사이 대기는 15초다. Actions Variables `GEMINI_MAX_REQUESTS`(1~200), `GEMINI_DELAY_MS`(15000~60000)로 조절할 수 있다. 실제 할당량을 보장하는 수치는 아니다.
+4. 429(한도 초과), 서버 오류, 실행당 요청 상한에서는 저장 후 멈춘다. GitHub 실행은 실패로 표시되며 실행 요약과 artifact의 `status.json`에 `paused`와 진행 건수가 남는다. **할당량 회복 후 같은 날짜로 다시 실행**하면 남은 기사부터 진행한다. 자동 예약 재실행은 아직 연결하지 않았다.
+5. 모든 기사의 응답이 검증된 후 한·영 PDF와 대시보드 JSON을 함께 커밋한다. 성공한 실행의 `monthly-report-pdfs-*` artifact에서도 PDF를 다운로드할 수 있다. 대기·오류 중에는 기존 발행물을 교체하지 않는다.
+
+원문과 판정 캐시는 GitHub Actions Cache에 보관한다. 캐시는 영구 저장소가 아니므로 삭제·퇴거되면 재수집/재분석이 필요하다. 실행마다 `gemini-report-*` artifact에도 30일 보관한다. 이 artifact의 복원은 자동화하지 않았다. 새 실행이 기존 실행을 취소하지 않도록 같은 브랜치에서는 순서대로 처리한다. 진행 중 사용자가 강제 취소하면 마지막 캐시 저장 이후 결과는 유실될 수 있다.
+
+## 판정과 검증 범위
+
+- 원문·기업 기술·판정 정책·모델이 바뀌면 캐시 식별자가 바뀐다.
+- 후보 누락, 잘못된 인용, 불완전 JSON, 출력 토큰 초과, 인증 오류는 보고서 발행을 차단한다. 이미 완료한 기사의 캐시는 저장한다.
+- `needs_review`는 시그널 없음으로 단정하지 않으며 수집·검토 부족으로 보고한다. 정확한 인용 일치는 의미 판단의 정확성을 보장하지 않는다.
+- `npm test`는 기존 계약과 Gemini 요청·재개·차단 동작을 검증한다. 모의 응답 테스트이며 실제 Gemini 판정 품질을 검증한 것은 아니다.
+- Vercel은 설정된 `GITHUB_REF`의 워크플로를 실행한다. 기본값 `main`에서는 브랜치 변경이 아직 반영되지 않는다. 이 변경만으로 기존 Vercel PDF의 배포 시점 데이터 문제가 해결되는 것은 아니다. 이번 범위는 Actions의 Gemini 분석·PDF 생성이며 배포와 다운로드 경로 개선은 별도다.
+
+로컬 실행에는 `GEMINI_API_KEY`, `GEMINI_FREE_TIER_CONFIRMED=true`, `REPORT_FROM_DATE`, `REPORT_TO_DATE` 및 Python ReportLab 환경이 필요하다. 직원 PC에서 실행할 필요는 없다. `npm run report:gemini`는 개발자용 진입점이다. 기존 `report:local` 경로도 유지한다.
