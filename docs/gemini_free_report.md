@@ -6,7 +6,7 @@
 
 - GitHub Actions Secret: `GEMINI_API_KEY` (등록 확인 완료).
 - Google AI Studio에서 키가 속한 프로젝트가 **결제를 연결하지 않은 Free Tier**인지 확인한다. 그 다음 GitHub Actions **Variable** `GEMINI_FREE_TIER_CONFIRMED`를 `true`로 설정한다. 이 값이 없으면 크롤링·API 호출 전에 종료한다.
-- 모델은 `gemini-2.5-flash`로 고정했다. 2026-09-07 Google 공식 가격표의 Standard Free Tier 대상이다. 무료 모델이라도 유료 프로젝트 키로 호출하면 과금될 수 있다. 코드나 API 키 이름으로 결제 상태를 판별할 수 없다. 결제를 연결할 경우 확인 변수를 해제하고 재검토해야 한다.
+- 모델은 `gemini-3.7-flash`로 고정했다. 2026-09-07 Google 공식 가격표의 Standard Free Tier 대상이다. 무료 모델이라도 유료 프로젝트 키로 호출하면 과금될 수 있다. 코드나 API 키 이름으로 결제 상태를 판별할 수 없다. 결제를 연결할 경우 확인 변수를 해제하고 재검토해야 한다.
 - 무료 서비스에는 입력의 제품 개선 사용 조건이 있다. 공개 기사와 분석에 필요한 기업·기술·지표 기준을 전송한다. 비공개 내부 전략 자료는 입력하지 않는다.
 
 공식 근거: [가격표](https://ai.google.dev/gemini-api/docs/pricing), [할당량](https://ai.google.dev/gemini-api/docs/rate-limits), [구조화 응답](https://ai.google.dev/gemini-api/docs/structured-output).
