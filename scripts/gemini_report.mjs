@@ -160,6 +160,11 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(async error => {
   console.error(error.message);
+  await write(path.resolve('outputs/gemini_work/status.json'), {
+    status: 'failed', reason: error.status ? 'provider_error' : 'validation_or_execution',
+    http_status: error.status || null, model: MODEL,
+    period: { from_date: process.env.REPORT_FROM_DATE || null, to_date: process.env.REPORT_TO_DATE || null },
+  }).catch(() => {});
   if (error.status === 404) {
     // Metadata-only request: report available model IDs, never select a paid fallback.
     try {
