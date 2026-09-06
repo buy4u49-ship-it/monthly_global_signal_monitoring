@@ -63,3 +63,17 @@ test('authentication failures and truncated responses fail closed', async () => 
   await assert.rejects(requestReview(article('A'), '', 'key', async () => new Response('secret detail', { status: 403 })), /^Error: Gemini HTTP 403$/);
   await assert.rejects(requestReview(article('A'), '', 'key', async () => response(decisions, 'MAX_TOKENS')), /incomplete response/);
 });
+
+test('provider outages expose only the HTTP code and safe reason, and stop after one request', async t => {
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  let calls = 0;
+  const state = await reviewArticles({ articles: [article('A')], reviewDir, policy: '', config, fetchImpl: async () => {
+    calls++;
+    return new Response(JSON.stringify({ error: { message: 'High demand; private provider detail' } }), { status: 503 });
+  } });
+  assert.equal(calls, 1);
+  assert.equal(state.http_status, 503);
+  assert.equal(state.provider_reason, 'capacity');
+  assert.equal(JSON.stringify(state).includes('private provider detail'), false);
+});
