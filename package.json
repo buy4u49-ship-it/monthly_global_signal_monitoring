@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "report:local": "node scripts/local_report.mjs",
     "test": "node --test",
     "dev": "next dev",
     "build": "next build",

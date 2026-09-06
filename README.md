@@ -28,6 +28,36 @@ The implemented accuracy controls, verification evidence, known limitations, and
 
 ## Commands
 
+### Local monthly report without model API calls
+
+Ask Codex in this project to create a monthly report using
+[`docs/local_report_review.md`](docs/local_report_review.md). Codex reads the article
+files and saves reviews directly; no chat-to-JSON copy/paste is needed. Included
+subscription usage limits still apply. The scripts themselves never call a model API.
+
+```bash
+# Reuse the checked-in August 2026 collection (does not crawl or call a model).
+npm run report:local -- prepare --month 2026-08
+
+# For a new collection, add --collect. All output stays in a separate local directory.
+npm run report:local -- prepare --month 2026-08 --collect
+
+# Use the run_dir printed by prepare. Codex writes the pending article reviews.
+npm run report:local -- status --run-dir RUN_DIR
+npm run report:local -- build --run-dir RUN_DIR --python python3
+```
+
+Preparation filters the report month before review and groups candidates by target
+company and article. Reviews are reused only for matching evidence and policy.
+All candidates need decisions; only approved rows need bilingual report prose.
+Build rejects missing, stale, contradictory, or ungrounded approvals and reuses
+the existing report validator and Python PDF renderer. Install
+`requirements-python.txt` in the selected Python environment before building.
+Each successful build produces Korean/English PDFs and a complete decision log in
+a new `outputs/local_reports/.../report-*` folder. Existing dashboard outputs and
+published PDFs are not overwritten. A Codex task must perform the review step;
+`prepare` alone does not generate AI decisions.
+
 Validate that the PDF page 2 list matches `data/target_companies.json`:
 
 ```bash

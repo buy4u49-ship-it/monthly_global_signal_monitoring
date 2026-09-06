@@ -10,3 +10,5 @@ outputs/pdf_verify/
 outputs/*_20*.json
 outputs/*_20*.csv
 scripts/__pycache__/
+outputs/local_reports/
+.DS_Store
