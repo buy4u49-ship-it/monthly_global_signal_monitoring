@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { groupArticles, importReview, inPeriod, monthPeriod } from "../scripts/local_report.mjs";
+import { groupArticles, importReview, inPeriod, monthPeriod, sourceCandidates } from "../scripts/local_report.mjs";
 
 const period = monthPeriod("2026-08");
 const source = {
@@ -89,9 +89,7 @@ test("CLI prepares isolated files and refuses incomplete builds without changing
     await fs.mkdir(dataDir);
     const inputs = {
       "latest_collection_summary.json": period,
-      "latest_company_signals.json": [source],
-      "latest_investment_signals.json": [source],
-      "latest_relevant_signals.json": [],
+      "latest_company_signals.json": [{ ...source, company: "Australian Strategic Metals" }],
     };
     for (const [name, value] of Object.entries(inputs)) await fs.writeFile(path.join(dataDir, name), JSON.stringify(value));
     const args = ["prepare", "--data-dir", dataDir, "--out-dir", outDir, "--month", "2026-08"];
@@ -108,7 +106,11 @@ test("CLI prepares isolated files and refuses incomplete builds without changing
     const snapshot = JSON.parse(await fs.readFile(path.join(runDir, "snapshot.json"), "utf8"));
     const preparedArticle = snapshot.articles[0];
     const reviewFile = path.join(outDir, "reviews", `${preparedArticle.id}.json`);
-    const reviewed = JSON.stringify(review(preparedArticle));
+    const reviewed = JSON.stringify(review(preparedArticle, preparedArticle.candidates.map((candidate) => decision({
+      candidate_id: candidate.id, indicator_supported: candidate.kind === "relevant",
+      leading_indicator_supported: candidate.kind === "relevant", event_stage: candidate.kind === "relevant" ? "not_applicable" : "unclear",
+      entity_supported: false,
+    }))));
     await fs.writeFile(reviewFile, reviewed);
     assert.equal(cli(["status", "--run-dir", runDir]).status, 0);
     assert.equal(cli(args).status, 0);
@@ -127,4 +129,29 @@ test("CLI prepares isolated files and refuses incomplete builds without changing
     assert.match(modified.stderr, /snapshot was modified/);
     for (const [name, value] of Object.entries(inputs)) assert.equal(await fs.readFile(path.join(dataDir, name), "utf8"), JSON.stringify(value));
   } finally { await fs.rm(temp, { recursive: true, force: true }); }
+});
+
+
+test("raw source review includes keyword misses and technology rejects for all five indicators", () => {
+  const technology = { companies: [{ company: source.company, target_no: 1, target_technology: "target", excluded_from_relevance: false }] };
+  const indicators = { indicators: [1,2,3,4,5].map((no) => ({no, label_ko: `S${no}`})) };
+  const candidates = sourceCandidates([{ ...source, passed: false }], technology, indicators, period);
+  assert.equal(candidates.investment.length, 5);
+  assert.equal(candidates.relevant.length, 1);
+  assert.equal(candidates.investment[4].investment_signal_no, 5);
+  assert.equal(candidates.investment[0].technology_gate_decision, "agent_review");
+  assert.throws(() => sourceCandidates([source], { companies: [] }, indicators, period), /Missing target/);
+});
+
+test("confirmed research precursor is accepted but cannot turn completed factories into signals", () => {
+  const a = groupArticles([{ ...source, investment_signal_no: 4 }], [], period)[0];
+  assert.equal(importReview(a, review(a, [decision({candidate_id: "investment:4", event_stage: "precursor"})]))[0].supported, true);
+  assert.equal(importReview(article(), review(article(), [decision({event_stage: "precursor"})]))[0].supported, false);
+});
+
+
+test("technology-exempt business rows still require concrete activity", () => {
+  const a = groupArticles([], [{...source, excluded_from_relevance:true}], period)[0];
+  const result = importReview(a, review(a, [decision({candidate_id:"relevant", event_stage:"not_applicable", target_technology_supported:false, indicator_supported:false, evidence_quotes:[]})]));
+  assert.equal(result[0].supported, false);
 });

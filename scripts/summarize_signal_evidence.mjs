@@ -4,9 +4,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { investmentStageSupported } from "./validate_report_inputs.mjs";
+
 const CACHE_VERSION = 1;
-const INVESTMENT_PROMPT_VERSION = "signal-summary-koen-v7";
-const RELEVANT_PROMPT_VERSION = "business-summary-koen-v9";
+const INVESTMENT_PROMPT_VERSION = "signal-summary-koen-v8";
+const RELEVANT_PROMPT_VERSION = "business-summary-koen-v10";
 const BUSINESS_SUMMARY_MIN_CHARS = 220;
 const BUSINESS_SUMMARY_MIN_CHARS_EN = 260;
 const KOREAN_TEXT_FIELDS = ["ai_summary_ko", "ai_summary_headline_ko", "ai_summary_detail_ko", "ai_summary_reason", "ai_summary_luna_draft"];
@@ -419,7 +421,7 @@ function summaryFromRow(row) {
 function hasCompleteSummaryDecision(row) {
   if (!cleanText(row?.ai_summary_ko) || !cleanText(row?.ai_summary_en) || !cleanText(row?.ai_summary_reason)) return false;
   if (!["pass", "needs_review"].includes(row?.ai_summary_quality)) return false;
-  if (!["exploratory", "planned", "committed", "completed", "not_applicable", "unclear"].includes(row?.ai_event_stage)) {
+  if (!["exploratory", "planned", "precursor", "committed", "completed", "not_applicable", "unclear"].includes(row?.ai_event_stage)) {
     return false;
   }
   return [
@@ -573,14 +575,14 @@ async function callOpenAI({ apiKey, model, row, args, tier, maxOutputTokens, kin
     "entity_supported는 기사 속 사건이 현재 검토 기업 자체에 귀속될 때만 true다. 모회사·관계사 자료는 본문에 검토 기업명, 해당 사업부, 제품 또는 임원이 명시되어 사건 귀속이 확인될 때만 true다.",
     "target_technology_supported는 사건이 '유치필요 품목/기술'과 직접 연결될 때만 true다. 같은 기업의 다른 사업부·제품·일반 경영활동이면 false다.",
     isBusinessSummary
-      ? "indicator_supported와 leading_indicator_supported는 true로 둔다. signal_supported는 entity_supported와 target_technology_supported가 모두 true일 때만 true다."
+      ? "indicator_supported는 구체적인 기술·사업 활동이 있을 때 true다. 단순 행사 안내·배당·회사 소개는 false다. leading_indicator_supported만 true로 둔다. 기술 관련성 면제도 구체적 사업 활동 근거는 요구한다."
       : "indicator_supported는 본문이 위 '시그널' 정의에 해당하는 구체적 사건을 보여줄 때만 true다. 키워드 언급, 위험고지·전망 상용문구, 일반 재무항목만 있으면 false다.",
     isBusinessSummary
       ? "event_stage는 not_applicable로 둔다."
-      : "event_stage는 exploratory, planned, committed, completed, unclear 중 하나다. 이미 확정·발표·계약·자금조달·인수·가동이 끝난 투자 사건 자체만 근거라면 committed 또는 completed로 판정한다.",
+      : "event_stage는 exploratory, planned, precursor, committed, completed, unclear 중 하나다. exploratory/planned는 향후 투자 검토·계획, committed/completed는 최종 투자 프로젝트의 확정·완료다. precursor는 지표 1·3·4·5의 구체적 공급망 대응·투자 재원 조달·연구협업·전략 인력 이동 활동이 확인된 경우다. 이 활동의 계약·발표 완료만으로 최종 투자 확정으로 분류하지 않는다. 생산시설 투자 자체의 확정·가동이나 일반 인수 완료를 precursor로 우회 승인하지 않는다.",
     isBusinessSummary
       ? "leading_indicator_supported는 true로 둔다."
-      : "leading_indicator_supported는 향후 투자결정의 선행 징후로 볼 근거가 있을 때만 true다. 확정되거나 완료된 투자·인수·자금조달 사실 자체만 근거인 후행 사건이면 false다.",
+      : "leading_indicator_supported는 지표에 맞는 구체적 전조 활동이나 향후 투자 검토·계획의 근거가 있을 때 true다. 조달은 투자·사업 확장 용도, 협업은 특정 기술 과제, 인력 이동은 전략 역할·실사·사업 기회 탐색 연결이 필요하다. 일반 배당·인사·위험고지는 false다. 특정 최종 투자 완료 사실만 있으면 false다. 전조 활동을 근거로 미확인 투자 지역·금액·계획을 만들지 않는다.",
     "signal_supported는 위 개별 판정의 논리곱이어야 한다. 하나라도 false이거나 불명확하면 false로 둔다.",
     relevanceExempt
       ? "다만 이 기업은 유치필요 품목(기술) 관련성 검사에서 제외된 대상이다. target_technology_supported는 본문 근거대로 판단해 그대로 보고하되, 이 항목만은 signal_supported의 논리곱에서 제외한다. 판정 사유에 타겟 기술과의 연계 부재를 적더라도 그것만으로 signal_supported를 false로 두지 않는다."
@@ -637,7 +639,7 @@ async function callOpenAI({ apiKey, model, row, args, tier, maxOutputTokens, kin
                 type: "string",
                 enum: isBusinessSummary
                   ? ["not_applicable"]
-                  : ["exploratory", "planned", "committed", "completed", "unclear"],
+                  : ["exploratory", "planned", "precursor", "committed", "completed", "unclear"],
               },
               quality: { type: "string", enum: ["pass", "needs_review"] },
               confidence: { type: "number" },
@@ -685,7 +687,7 @@ async function callOpenAI({ apiKey, model, row, args, tier, maxOutputTokens, kin
   const decisionQualitySupported = parsed.quality === "pass";
   const eventStageSupported = isBusinessSummary
     ? parsed.event_stage === "not_applicable"
-    : ["exploratory", "planned"].includes(parsed.event_stage);
+    : investmentStageSupported(parsed.event_stage, row.investment_signal_no);
   // 관련성 면제 행은 타겟 기술 연결을 요구하지 않으므로, 사유가 그 연결의 부재를 말하는 것도
   // 모순이 아니다. 따라서 사유 기반 거부도 함께 적용하지 않는다.
   const targetTechnologyRequired = !relevanceExempt;
@@ -693,6 +695,7 @@ async function callOpenAI({ apiKey, model, row, args, tier, maxOutputTokens, kin
   const reasonSupported = !targetTechnologyRequired || !reasonDeniesDirectSupport(parsed.reason);
   const computedSignalSupported = isBusinessSummary
     ? entitySupported &&
+      indicatorSupported &&
       targetTechnologySatisfied &&
       decisionQualitySupported &&
       eventStageSupported &&

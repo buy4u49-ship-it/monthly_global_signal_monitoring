@@ -6,10 +6,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { validateRows } from "./validate_report_inputs.mjs";
+import { validateRows, investmentStageSupported } from "./validate_report_inputs.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const POLICY_VERSION = "local-report-v1";
+const POLICY_VERSION = "local-report-v2";
 const clean = (value) => String(value || "").replace(/\s+/g, " ").trim();
 const hash = (value) => crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 24);
 const read = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
@@ -76,6 +76,29 @@ export function groupArticles(investment, relevant, period, policy = POLICY_VERS
   });
 }
 
+// Every in-month source reaches the agent, including keyword/technology filter misses.
+export function sourceCandidates(signals, technology, indicators, period) {
+  const investment = [], relevant = [], seen = new Set();
+  for (const signal of signals) {
+    if (!inPeriod(signal, period)) continue;
+    const key = JSON.stringify([signal.target_no, signal.company, signal.url || signal.title]);
+    if (seen.has(key)) throw new Error(`Duplicate source article: ${signal.company} ${signal.url}`);
+    seen.add(key);
+    const tech = technology.companies.find((item) => item.company === signal.company && item.target_no === signal.target_no);
+    if (!tech) throw new Error(`Missing target technology: ${signal.company}`);
+    const row = { ...withoutAI(signal), ...tech, company: signal.company,
+      technology_gate_decision: tech.excluded_from_relevance ? "relevance_exempt" : "agent_review",
+      candidate_origin: "all_month_sources" };
+    relevant.push(row);
+    for (const indicator of indicators.indicators) investment.push({ ...row,
+      investment_signal_no: indicator.no, investment_signal_id: indicator.id,
+      investment_signal_label: indicator.label_ko, investment_signal_label_en: indicator.label_en,
+      investment_signal_description: indicator.description_ko,
+    });
+  }
+  return { investment, relevant };
+}
+
 const BOOLEANS = ["entity_supported", "target_technology_supported", "indicator_supported", "leading_indicator_supported"];
 
 // Checks the review import boundary, then delegates report-row consistency to the existing validator.
@@ -96,16 +119,16 @@ export function importReview(article, review) {
     for (const field of BOOLEANS) {
       if (typeof decision[field] !== "boolean") throw new Error(`${context}: missing boolean ${field}`);
     }
-    const stages = candidate.kind === "relevant" ? ["not_applicable"] : ["exploratory", "planned", "committed", "completed", "unclear"];
+    const stages = candidate.kind === "relevant" ? ["not_applicable"] : ["exploratory", "planned", "precursor", "committed", "completed", "unclear"];
     if (!stages.includes(decision.event_stage)) throw new Error(`${context}: invalid event_stage`);
     if (!["pass", "needs_review"].includes(decision.quality)) throw new Error(`${context}: invalid quality`);
     if (!clean(decision.reason_ko)) throw new Error(`${context}: reason_ko is required`);
-    if (candidate.kind === "relevant" && (!decision.indicator_supported || !decision.leading_indicator_supported)) {
-      throw new Error(`${context}: business rows use true for the two non-applicable indicator fields`);
+    if (candidate.kind === "relevant" && !decision.leading_indicator_supported) {
+      throw new Error(`${context}: business rows use true for the non-applicable leading indicator field`);
     }
     const supported = decision.entity_supported && (candidate.relevance_exempt || decision.target_technology_supported) &&
       decision.indicator_supported && decision.leading_indicator_supported && decision.quality === "pass" &&
-      (candidate.kind === "relevant" || ["exploratory", "planned"].includes(decision.event_stage));
+      (candidate.kind === "relevant" || investmentStageSupported(decision.event_stage, candidate.row.investment_signal_no));
     const quotes = decision.evidence_quotes;
     if (!Array.isArray(quotes) || quotes.some((quote) => !clean(quote) || !evidence.some((text) => text.includes(clean(quote))))) {
       throw new Error(`${context}: evidence_quotes must be exact passages from this article`);
@@ -144,12 +167,6 @@ async function collect(month, outDir) {
     "--sources", "official_feeds,official_pages,google_news", "--from-date", period.from_date, "--to-date", period.to_date,
     "--max-per-source", "6", "--max-per-company", "10", "--max-detail-per-company", "10",
     "--fallback-mode", "missing", "--fallback-min-results", "1", "--rate-limit-seconds", "0.5", "--company-concurrency", "4"]);
-  execute(process.execPath, ["scripts/filter_relevant_signals.mjs", "--signals", path.join(dataDir, "latest_company_signals.json"),
-    "--technology-map", "data/company_technology_map.json", "--keyword-config", "config/technology_keywords.json", "--out-dir", dataDir, "--threshold", "1"]);
-  execute(process.execPath, ["scripts/classify_investment_signals.mjs", "--signals", path.join(dataDir, "latest_company_signals.json"),
-    "--technology-classification", path.join(dataDir, "latest_signal_relevance_classification.json"),
-    "--indicator-config", "config/investment_signal_indicators.json", "--out-dir", dataDir,
-    "--threshold", "4", "--require-technology-relevance", "true"]);
   return dataDir;
 }
 
@@ -157,9 +174,8 @@ async function prepare(args) {
   const outDir = path.resolve(args.outDir || "outputs/local_reports");
   await fs.mkdir(outDir, { recursive: true });
   const dataDir = args.collect ? await collect(args.month, outDir) : path.resolve(args.dataDir || "outputs");
-  const [summary, signals, investment, relevant, targets, technology, indicators, policyText] = await Promise.all([
+  const [summary, signals, targets, technology, indicators, policyText] = await Promise.all([
     read(path.join(dataDir, "latest_collection_summary.json")), read(path.join(dataDir, "latest_company_signals.json")),
-    read(path.join(dataDir, "latest_investment_signals.json")), read(path.join(dataDir, "latest_relevant_signals.json")),
     read(path.join(ROOT, "data/target_companies.json")), read(path.join(ROOT, "data/company_technology_map.json")),
     read(path.join(ROOT, "config/investment_signal_indicators.json")), fs.readFile(path.join(ROOT, "docs/local_report_review.md"), "utf8"),
   ]);
@@ -169,7 +185,8 @@ async function prepare(args) {
     throw new Error(`Collection period does not cover exactly ${month}. Use prepare --month ${month} --collect for fresh data.`);
   }
   const policy = `${POLICY_VERSION}:${hash([policyText, indicators, technology])}`;
-  const articles = groupArticles(investment, relevant, period, policy);
+  const candidates = sourceCandidates(signals, technology, indicators, period);
+  const articles = groupArticles(candidates.investment, candidates.relevant, period, policy);
   const snapshot = { policy, period, summary, signals: signals.map(withoutAI), articles, targets, technology, indicators };
   const runDir = path.join(outDir, `${month}-${hash(snapshot)}`);
   await fs.mkdir(path.join(runDir, "articles"), { recursive: true });
@@ -187,7 +204,7 @@ async function prepare(args) {
   }
   await fs.writeFile(path.join(runDir, "REVIEW.md"), policyText);
   console.log(JSON.stringify({ run_dir: runDir, review_dir: path.join(outDir, "reviews"),
-    collection_rows: signals.length, candidate_rows_before_period: investment.length + relevant.length,
+    collection_rows: signals.length, excluded_from_month: signals.length - articles.length,
     candidate_rows: articles.reduce((n, article) => n + article.candidates.length, 0), articles: articles.length }, null, 2));
   await status(runDir);
 }
@@ -238,8 +255,18 @@ async function build(args) {
   // A failed build never overwrites an earlier PDF, either here or in public/reports.
   const buildDir = await fs.mkdtemp(path.join(runDir, "report-"));
   try {
+    const reviewByArticle = new Map(reviews.map((review) => [review.article_id, review]));
+    const coverage = snapshot.targets.map((target) => {
+      const articles = snapshot.articles.filter((article) => article.company === target.company);
+      const incomplete = articles.filter((article) => reviewByArticle.get(article.id).decisions.some((d) => d.quality === "needs_review"));
+      return { company: target.company, monthly_articles: articles.length,
+        needs_review_articles: incomplete.length,
+        status: !articles.length ? "no_monthly_sources" : incomplete.length ? "incomplete_evidence" : "reviewed",
+        follow_up: incomplete.map((article) => ({ url: article.url, title: article.title })) };
+    });
     const files = {
-      "signals.json": snapshot.signals, "summary.json": snapshot.summary,
+      "signals.json": snapshot.signals, "summary.json": { ...snapshot.summary, review_coverage: coverage },
+      "coverage.json": coverage,
       "investment.json": investment, "relevant.json": relevant,
       "investment-summary.json": { investment_signal_count: investment.length },
       "targets.json": snapshot.targets, "technology.json": snapshot.technology, "indicators.json": snapshot.indicators,
@@ -258,6 +285,7 @@ async function build(args) {
     }
     console.log(JSON.stringify({ status: "completed", report_dir: buildDir, reviewed_articles: reviews.length,
       reviewed_candidates: results.length, approved_investment: investment.length, approved_business: relevant.length,
+      incomplete_companies: coverage.filter((item) => item.status !== "reviewed").length,
       rejected_candidates: results.filter((item) => !item.supported).length }, null, 2));
   } catch (error) {
     await fs.rm(buildDir, { recursive: true, force: true });

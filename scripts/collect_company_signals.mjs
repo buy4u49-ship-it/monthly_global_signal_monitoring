@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -1408,6 +1409,12 @@ async function mapWithConcurrency(items, concurrency, worker) {
   return results;
 }
 
+export function usableMonthlySource(row, dateRange) {
+  const published = Date.parse(row.published_at || "");
+  return Number.isFinite(published) && published >= dateRange.fromMs && published <= dateRange.toMs &&
+    (row.source_type !== "official" || (row.content_fetch_status === "fetched" && Boolean(row.content_text?.trim())));
+}
+
 async function collectCompany(company, sourceConfig, selectedSources, args, dateRange, collectedAt) {
   const companyRows = [];
   const errors = [];
@@ -1421,10 +1428,8 @@ async function collectCompany(company, sourceConfig, selectedSources, args, date
       } else if (source === "official_pages") {
         result = await collectOfficialPages(company, sourceConfig, dateRange, args.maxPerSource, args.timeoutSeconds, collectedAt);
       } else if (source === "google_news") {
-        if (args.fallbackMode === "missing" && dedupeRows(companyRows).length >= args.fallbackMinResults) {
-          continue;
-        }
-        result = await collectGoogleNews(company, dateRange, args.maxPerSource, args.timeoutSeconds, collectedAt);
+        // Decide after official detail/date enrichment, not from undated listing links.
+        continue;
       } else if (source === "gdelt") {
         result = await collectGdelt(company, dateRange, args.maxPerSource, args.timeoutSeconds, collectedAt);
       } else {
@@ -1455,11 +1460,23 @@ async function collectCompany(company, sourceConfig, selectedSources, args, date
 
   const selectedCompanyRows = sortRows(dedupeRows(companyRows)).slice(0, args.maxPerCompany);
   const enriched = await enrichOfficialRowsWithContent(selectedCompanyRows, args, collectedAt, company);
-  return {
-    rows: enriched.rows,
-    requestCount: requestCount + enriched.requestCount,
-    errors: [...errors, ...enriched.errors],
-  };
+  requestCount += enriched.requestCount;
+  errors.push(...enriched.errors);
+  let rows = enriched.rows;
+  const usable = rows.filter((row) => usableMonthlySource(row, dateRange));
+  if (selectedSources.includes("google_news") &&
+      (args.fallbackMode !== "missing" || usable.length < args.fallbackMinResults)) {
+    try {
+      const fallback = await collectGoogleNews(company, dateRange, args.maxPerSource, args.timeoutSeconds, collectedAt);
+      requestCount += fallback.requestCount;
+      if (fallback.requestCount > 0) await sleep(args.rateLimitSeconds * 1000);
+      // Keep useful monthly evidence and supplement it before filling slots with undated/failed links.
+      rows = dedupeRows([...usable, ...fallback.rows, ...rows]).slice(0, args.maxPerCompany);
+    } catch (error) {
+      errors.push({ target_no: company.target_no, company: company.company, source: "google_news", error: error.message });
+    }
+  }
+  return { rows, requestCount, errors };
 }
 
 async function main() {
@@ -1554,7 +1571,7 @@ async function main() {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-main().catch((error) => {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => {
   console.error(error.stack || error.message);
   process.exit(1);
 });

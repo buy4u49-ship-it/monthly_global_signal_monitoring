@@ -296,15 +296,15 @@ TEXTS = {
         "cover_title_2": "글로벌 투자시그널",
         "cover_title_3": "모니터링",
         "cover_line_1": "산업부 선정 30대 투자유치 프로젝트 · 77개 타겟기업",
-        "cover_line_2": "기업별 5대 시그널(전조현상) 포착 · 투자 확정 전 선행 징후 기반",
+        "cover_line_2": "기업별 5대 시그널(전조현상) 포착 · 투자 검토·전조 활동 근거 기반",
         "cover_indicator_heading": "5대 투자동향 지표",
         "matrix_title": "이번 달 시그널 매트릭스",
-        "matrix_desc": "77개 타겟기업의 {period} 글로벌 투자 시그널(전조현상). 활성화된 셀 = 당월 포착된 시그널 (투자 확정 ˙ 발표 완료 등 후행 데이터 제외).",
+        "matrix_desc": "77개 타겟기업의 {period} 글로벌 투자 시그널(전조현상). 활성화된 셀 = 당월 포착된 시그널 (최종 투자 확정·완료 제외, 조달·연구협업 등 전조 활동 포함).",
         "matrix_company": "기업",
         "matrix_legend_on": "시그널 포착",
         "matrix_legend_off": "미포착",
         "matrix_indicators": "① 공급망·지정학 리스크 대응 · ② 생산 확대·다변화 의지 · ③ 투자 재원 확보 · ④ 기술 생태계 밀착(R&D) · ⑤ 핵심 전략 인력의 이동",
-        "matrix_footnote": "당월 시그널 포착 {on}개사 · 공식자료 확인 후 미포착 {reviewed_off}개사 · 수집근거 부족 {insufficient}개사",
+        "matrix_footnote": "당월 시그널 포착 {on}개사 · 자료 검토 후 미포착 {reviewed_off}개사 · 수집근거 부족 {insufficient}개사",
         "detail_title": "기업별 시그널 상세",
         "no_signal": "이번 달 해당 신호 미포착",
         "business_heading": "글로벌 사업현황",
@@ -326,15 +326,15 @@ TEXTS = {
         "cover_title_2": "Global Investment Signals",
         "cover_title_3": "Monitoring",
         "cover_line_1": "30 priority investment projects selected by MOTIE · 77 target companies",
-        "cover_line_2": "Five leading signals per company · early indicators before an investment decision",
+        "cover_line_2": "Five leading signals per company · Investment plans and enabling activities",
         "cover_indicator_heading": "Five investment trend indicators",
         "matrix_title": "Signal Matrix of the Month",
-        "matrix_desc": "Global investment signals (leading indicators) across 77 target companies for {period}. A filled cell marks a signal captured during the month; confirmed or already announced investments are excluded.",
+        "matrix_desc": "Global investment signals (leading indicators) across 77 target companies for {period}. A filled cell marks a signal captured during the month; final investment commitments are excluded; financing and R&D precursors are included.",
         "matrix_company": "Company",
         "matrix_legend_on": "Signal captured",
         "matrix_legend_off": "Not detected",
         "matrix_indicators": "① Supply chain & geopolitical risk · ② Production expansion · ③ Investment financing · ④ Technology ecosystem · ⑤ Key personnel movement",
-        "matrix_footnote": "{on} detected · {reviewed_off} not detected after official-source review · {insufficient} insufficient coverage",
+        "matrix_footnote": "{on} detected · {reviewed_off} not detected in reviewed sources · {insufficient} insufficient coverage",
         "detail_title": "Company Signal Detail",
         "no_signal": "No signal detected this month",
         "business_heading": "GLOBAL BUSINESS",
@@ -1166,7 +1166,14 @@ def signal_supported(row):
     for field in required_fields:
         if row.get(field) is not True:
             return False
-    if row.get("ai_event_stage") in {"committed", "completed", "unclear"}:
+    stage = row.get("ai_event_stage")
+    if row.get("investment_signal_no") is not None:
+        allowed = stage in {"exploratory", "planned"} or (
+            stage == "precursor" and str(row.get("investment_signal_no")) in {"1", "3", "4", "5"}
+        )
+    else:
+        allowed = stage == "not_applicable"
+    if not allowed:
         return False
     if not target_technology_required:
         return True
@@ -1277,6 +1284,8 @@ def draw_matrix(report, profiles, signal_index, summary, signal_rows):
         for row in signal_rows
         if row.get("company") and row.get("source_type") == "official"
     }
+    if isinstance(summary.get("review_coverage"), list):
+        official_covered = {item.get("company") for item in summary["review_coverage"] if item.get("status") == "reviewed"}
     reviewed_off = sum(
         1
         for profile in profiles

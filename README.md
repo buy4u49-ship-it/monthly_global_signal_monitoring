@@ -141,3 +141,12 @@ AI-evaluated report rows additionally include `ai_entity_supported`, `ai_target_
 ## Vercel
 
 This repository now contains a minimal Next.js app, so Vercel should detect it as a Next.js project. If Vercel previously detected the repository as Python, redeploy after committing the new `package.json`, `app/`, and removed root `requirements.txt`.
+
+
+### Signal review policy (September 2026 correction)
+
+Local preparation now includes **every dated source article in the requested month**, even if the technology or indicator keyword filters rejected it. Each article is checked against all five indicators and the business-activity criteria. This increases review coverage; it does not approve a keyword match automatically.
+
+`ai_event_stage=precursor` denotes a verified enabling activity under indicators 1, 3, 4 or 5 (supply-chain action, investment financing, specific R&D collaboration or strategic personnel activity). Its announcement may be complete while a final investment remains unconfirmed. Final committed/completed investment projects remain excluded, and production expansion (indicator 2) cannot use `precursor`. Entity and technology requirements remain in force. The investment API prompt version is bumped to invalidate old decisions; local policy fingerprints also change.
+
+A local build writes `coverage.json` alongside its PDFs. Missing monthly sources and `needs_review` evidence are distinguished from reviewed negative results in the matrix counts. Google News fallback now checks usable monthly evidence **after** official detail/date enrichment. Live collection success still depends on the source sites.

@@ -53,6 +53,12 @@ const DENIAL_PATTERNS = [
   /no direct (?:evidence|link|connection|relevance)/i,
 ];
 
+// precursor = verified enabling activity, not a committed final investment project.
+export function investmentStageSupported(stage, indicatorNo) {
+  return ["exploratory", "planned"].includes(stage) ||
+    (stage === "precursor" && [1, 3, 4, 5].includes(Number(indicatorNo)));
+}
+
 export function validateRows(rows, kind) {
   const errors = [];
   rows.forEach((row, index) => {
@@ -77,7 +83,7 @@ export function validateRows(rows, kind) {
       if (targetTechnologyRequired && DENIAL_PATTERNS.some((pattern) => pattern.test(cleanText(row.ai_summary_reason)))) {
         errors.push(`${id}: supported row reason denies direct relevance`);
       }
-      if (kind === "investment" && ["committed", "completed", "unclear"].includes(row.ai_event_stage)) {
+      if (kind === "investment" && !investmentStageSupported(row.ai_event_stage, row.investment_signal_no)) {
         errors.push(`${id}: supported investment row has non-leading event stage ${row.ai_event_stage}`);
       }
     }

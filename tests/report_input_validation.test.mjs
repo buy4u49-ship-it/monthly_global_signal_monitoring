@@ -53,3 +53,10 @@ test("allows an unsupported row to remain for dashboard review", () => {
   });
   assert.deepEqual(validateRows([row], "investment"), []);
 });
+
+
+test("precursor stages are restricted to enabling activities and unknown stages fail closed", () => {
+  for (const no of [1,3,4,5]) assert.deepEqual(validateRows([validRow({ investment_signal_no: no, ai_event_stage: "precursor" })], "investment"), []);
+  for (const stage of ["precursor", "not_applicable", "unknown", "committed"])
+    assert.ok(validateRows([validRow({ ai_event_stage: stage })], "investment").length > 0);
+});

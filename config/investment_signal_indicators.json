@@ -33,7 +33,7 @@
       "description_ko": "대규모 회사채 발행·유상증자·신용공여 조달 등",
       "keywords": [
         "투자 재원", "회사채", "채권 발행", "유상증자", "신용공여", "신용 한도", "대출 약정", "차입", "자금 조달", "자본 조달", "전환사채", "사모", "공모", "시설투자 자금",
-        "bond offering", "notes offering", "senior notes", "convertible notes", "debt offering", "debt financing", "credit facility", "revolving credit", "term loan", "loan agreement", "financing agreement", "capital raise", "capital raising", "equity offering", "rights issue", "share offering", "private placement", "public offering", "shelf registration", "use of proceeds", "funding", "liquidity", "capital expenditure", "capex financing"
+        "investment round", "financing will support", "bond offering", "notes offering", "senior notes", "convertible notes", "debt offering", "debt financing", "credit facility", "revolving credit", "term loan", "loan agreement", "financing agreement", "capital raise", "capital raising", "equity offering", "rights issue", "share offering", "private placement", "public offering", "shelf registration", "use of proceeds", "funding", "liquidity", "capital expenditure", "capex financing"
       ]
     },
     {
@@ -55,7 +55,7 @@
       "description_ko": "C-Level 이동·극비 방한 및 실사 조율 등",
       "keywords": [
         "C-Level 이동", "C레벨 이동", "경영진 교체", "임원 이동", "임원 선임", "신임 대표", "신임 사장", "사장 선임", "이사회 선임", "방한", "한국 방문", "현장 실사", "실사 조율", "대표단 방한", "고위급 방문",
-        "C-level appointment", "chief executive officer appointment", "chief financial officer appointment", "chief technology officer appointment", "executive appointment", "appoints new", "appointed as", "joins as", "named chief", "named CEO", "named CFO", "named CTO", "leadership transition", "management change", "board appointment", "senior executive appointment", "head of APAC", "Korea visit", "site visit", "due diligence", "executive delegation"
+        "appointment of", "to serve on its board", "delegation to the Republic of Korea", "C-level appointment", "chief executive officer appointment", "chief financial officer appointment", "chief technology officer appointment", "executive appointment", "appoints new", "appointed as", "joins as", "named chief", "named CEO", "named CFO", "named CTO", "leadership transition", "management change", "board appointment", "senior executive appointment", "head of APAC", "Korea visit", "site visit", "due diligence", "executive delegation"
       ]
     }
   ]
