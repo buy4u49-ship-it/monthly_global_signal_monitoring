@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { sourceCandidates, groupArticles, importReview, build } from './local_report.mjs';
 
-export const MODEL = 'gemini-3.7-flash';
+export const MODEL = 'gemini-3.1-flash-lite';
 const VERSION = 'gemini-article-v1';
 const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 24);
 const read = async file => JSON.parse(await fs.readFile(file, 'utf8'));
