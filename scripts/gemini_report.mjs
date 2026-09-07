@@ -47,6 +47,41 @@ function invalidResponse(code) {
   return Object.assign(new Error(`Gemini invalid response: ${code}`), { response_code: code });
 }
 
+// A quote array can contain separate passages. Split joined sentences only
+// when EVERY sentence independently matches the SAME source block in order.
+// Never fill omitted text, remove ellipses, or use fuzzy/semantic matching.
+export function separateVerifiedQuotes(article, decisions) {
+  const evidence = article.evidence.map(normalizeQuote);
+  const repairs = [];
+  return {
+    decisions: decisions.map(decision => {
+      if (!Array.isArray(decision.evidence_quotes)) return decision;
+      const quotes = decision.evidence_quotes.flatMap((quote, quote_index) => {
+        if (typeof quote !== 'string' || evidence.some(block => block.includes(normalizeQuote(quote)))) return [quote];
+        if (/\.{3}|…/.test(quote)) return [quote];
+        const sentences = quote.trim().split(/(?<=[.!?])\s+/);
+        if (sentences.length < 2 || sentences.some(s => s.length < 30 || !/[.!?]$/.test(s))) return [quote];
+        const normalized = sentences.map(normalizeQuote);
+        const blockIndex = evidence.findIndex(block => {
+          let offset = 0;
+          for (const sentence of normalized) {
+            const index = block.indexOf(sentence, offset);
+            if (index < 0) return false;
+            offset = index + sentence.length;
+          }
+          return true;
+        });
+        if (blockIndex < 0) return [quote];
+        repairs.push({ candidate_id: decision.candidate_id, quote_index, original_quote: quote,
+          separated_quotes: sentences, evidence_block_index: blockIndex });
+        return sentences;
+      });
+      return { ...decision, evidence_quotes: quotes };
+    }),
+    repairs,
+  };
+}
+
 // Diagnostic data is never imported as a review. Keep only evidence-related
 // fields, not provider bodies, thoughts, summaries, headers or error messages.
 function quoteDiagnostics(article, decisions, apiKey) {
@@ -118,7 +153,9 @@ export async function requestReview(article, policy, apiKey, fetchImpl = fetch, 
   if (Array.isArray(parsed.decisions)) parsed.decisions = parsed.decisions.map(decision =>
     article.candidates.some(c => c.id === decision.candidate_id && c.kind === 'relevant')
       ? { ...decision, leading_indicator_supported: true, event_stage: 'not_applicable' } : decision);
-  const review = { article_id: article.id, reviewer: `${MODEL}/${VERSION}`, provider: 'gemini', decisions: parsed.decisions, usage: payload.usageMetadata || {} };
+  const separated = separateVerifiedQuotes(article, parsed.decisions);
+  const review = { article_id: article.id, reviewer: `${MODEL}/${VERSION}`, provider: 'gemini', decisions: separated.decisions,
+    ...(separated.repairs.length ? { quote_repairs: separated.repairs } : {}), usage: payload.usageMetadata || {} };
   try { importReview(article, review); } catch (error) {
     const failure = invalidResponse(/evidence_quotes/.test(error.message) ? 'evidence_mismatch'
       : /needs an evidence quote/.test(error.message) ? 'missing_evidence' : 'review_validation');

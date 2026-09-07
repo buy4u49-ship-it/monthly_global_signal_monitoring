@@ -26,6 +26,10 @@
 
 ### 반복되는 인용 오류 진단
 
+Gemini가 떨어진 복수 문장을 한 인용으로 결합한 경우, 각 문장이 같은 원문 블록에
+같은 순서로 정확히 존재하는지 확인해 별도 인용으로 분리한다. 변경 내역은 판정 파일의
+`quote_repairs`에 남긴다. 생략부호나 바뀐 숫자·단어를 자동 수정하지 않는다.
+
 `evidence_mismatch`가 반복되면 같은 실행을 계속 돌리기보다 `gemini-report-*` artifact의
 `status.json`에 있는 `diagnostics[].file`을 확인한다. 파일은
 `reviews/diagnostics/<article_id>/<고유 ID>-attempt-1.json` 형식이며 Actions 요약에도 경로가 표시된다.

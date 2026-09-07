@@ -3,13 +3,45 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { configuration, requestReview, reviewArticles, MODEL } from '../scripts/gemini_report.mjs';
+import { configuration, requestReview, reviewArticles, separateVerifiedQuotes, MODEL } from '../scripts/gemini_report.mjs';
 import { groupArticles } from '../scripts/local_report.mjs';
 
 const article = company => groupArticles([{ company, target_no: 1, url: `https://example.com/${company}`, title: 'Pilot plant', published_at: '2026-08-02', investment_signal_no: 2, target_technology: 'material', content_text: 'The company plans a pilot plant.' }], [], { from_date: '2026-08-01', to_date: '2026-08-31' })[0];
 const decisions = [{ candidate_id: 'investment:2', entity_supported: true, target_technology_supported: true, indicator_supported: true, leading_indicator_supported: true, event_stage: 'planned', quality: 'pass', reason_ko: '파일럿 생산시설 계획을 확인함', evidence_quotes: ['The company plans a pilot plant.'], summary_ko: '파일럿 생산시설 계획', summary_en: 'Pilot production plant planned' }];
 const response = (ds = decisions, finishReason = 'STOP') => new Response(JSON.stringify({ candidates: [{ finishReason, content: { parts: [{ text: JSON.stringify({ decisions: ds }) }] } }] }));
 const config = { apiKey: 'test-key', maxRequests: 40, delayMs: 15000 };
+
+// Actual failed HyproMag investment:2 quote: the model omitted the middle sentence.
+const remloyPlant = 'Remloy has developed a plant in Bitterfeld, Germany, which recycles end-of-life rare earth magnets via a melting process (medium loop recycling) to produce neodymium-iron-boron (“NdFeB”) alloy powders for the bonded and hot deformed magnet markets.';
+const remloyMiddle = 'The Remloy process is complementary to HyProMag’s short loop recycling process to produce sintered magnets, and to Mkango Rare Earths UK’s long loop recycling process, to produce mixed rare earth carbonates and oxides.';
+const remloyCapacity = 'Target capacity is at least 500 tonnes per year of NdFeB alloy powder.';
+
+test('real HyproMag joined quote becomes two independently verified passages', async () => {
+  const a = article('HyproMag');
+  a.evidence = [[remloyPlant, remloyMiddle, remloyCapacity].join(' ')];
+  const joined = `${remloyPlant} ${remloyCapacity}`;
+  const review = await requestReview(a, '', 'key', async () => response([{ ...decisions[0], evidence_quotes: [joined] }]));
+  assert.deepEqual(review.decisions[0].evidence_quotes, [remloyPlant, remloyCapacity]);
+  assert.equal(review.quote_repairs[0].original_quote, joined);
+  assert.equal(review.quote_repairs[0].evidence_block_index, 0);
+  for (const field of ['entity_supported', 'indicator_supported', 'event_stage', 'quality', 'summary_ko', 'summary_en']) {
+    assert.equal(review.decisions[0][field], decisions[0][field]);
+  }
+});
+
+test('quote separation rejects altered numbers, ellipses, reversed passages and cross-block joins', async () => {
+  const a = article('HyproMag');
+  a.evidence = [[remloyPlant, remloyMiddle, remloyCapacity].join(' ')];
+  for (const quote of [`${remloyPlant} ${remloyCapacity.replace('500', '900')}`,
+    `${remloyPlant} ... ${remloyCapacity}`, `${remloyCapacity} ${remloyPlant}`]) {
+    await assert.rejects(requestReview(a, '', 'key', async () => response([{ ...decisions[0], evidence_quotes: [quote] }])), /evidence_mismatch/);
+  }
+  a.evidence = [remloyPlant, remloyCapacity];
+  const ds = [{ ...decisions[0], evidence_quotes: [`${remloyPlant} ${remloyCapacity}`] }];
+  const separated = separateVerifiedQuotes(a, ds);
+  assert.deepEqual(separated.decisions, ds);
+  assert.deepEqual(separated.repairs, []);
+});
 
 test('requires explicit free-tier confirmation and bounds API requests', () => {
   assert.throws(() => configuration({ GEMINI_API_KEY: 'key' }), /FREE_TIER_CONFIRMED/);
