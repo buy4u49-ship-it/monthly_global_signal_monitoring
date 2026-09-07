@@ -15,8 +15,8 @@ test('requires explicit free-tier confirmation and bounds API requests', () => {
   assert.throws(() => configuration({ GEMINI_API_KEY: 'key' }), /FREE_TIER_CONFIRMED/);
   assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true' }), /API_KEY/);
   assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '0' }), /1..400/);
-  assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_DELAY_MS: '4000' }), /5000..60000/);
-  assert.deepEqual(configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '400', GEMINI_DELAY_MS: '5000' }), { apiKey: 'key', maxRequests: 400, delayMs: 5000 });
+  assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_DELAY_MS: '3999' }), /4000..60000/);
+  assert.deepEqual(configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '400', GEMINI_DELAY_MS: '4500' }), { apiKey: 'key', maxRequests: 400, delayMs: 4500 });
 });
 
 test('uses one fixed Gemini endpoint, structured output and all article candidates', async () => {
