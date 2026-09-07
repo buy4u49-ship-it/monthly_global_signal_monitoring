@@ -7,12 +7,11 @@ import { spawnSync } from 'node:child_process';
 import { sourceCandidates, groupArticles, importReview, normalizeQuote, build } from './local_report.mjs';
 import { resolveProvider, describeKeyShape } from './review_providers.mjs';
 
-// 어느 API로 보낼지는 REPORT_PROVIDER 가 정한다. 기본값은 Gemini 무료 티어 Flash-Lite다.
-// Gemini 가 503/404 로 멈추면 GEMINI_MODEL=gemini-3.1-flash-lite 로 내려간다.
+// 판정은 NVIDIA build 의 OpenAI 호환 엔드포인트로 보낸다. 모델은 NVIDIA_MODEL 로 바꾼다.
 // 모델 이름은 정책 다이제스트에 들어가므로, 바꾸면 앞선 판정은 재사용되지 않는다.
 export const PROVIDER = resolveProvider();
 export const MODEL = PROVIDER.model;
-const VERSION = 'gemini-article-v1';
+const VERSION = 'article-review-v1';
 const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 24);
 const read = async file => JSON.parse(await fs.readFile(file, 'utf8'));
 const write = async (file, value) => {
@@ -23,11 +22,6 @@ const write = async (file, value) => {
 
 export function configuration(env = process.env, provider = resolveProvider(env)) {
   const prefix = provider.id.toUpperCase();
-  // Gemini 는 API 가 무료 티어를 강제하지 못하므로 사람이 확인했다는 표시를 요구한다.
-  // NVIDIA 무료 키는 선불 크레딧이라 같은 위험이 없다.
-  if (provider.requiresFreeTierConfirmation && env[`${prefix}_FREE_TIER_CONFIRMED`] !== 'true') {
-    throw new Error(`Set ${prefix}_FREE_TIER_CONFIRMED=true only after confirming this key belongs to a project with no paid billing. The API cannot enforce free-tier billing.`);
-  }
   const keyEnv = provider.keyEnv.find(name => env[name]);
   if (!keyEnv) throw new Error(`${provider.keyEnv.join(' or ')} is required`);
   const maxRequests = Number(env[`${prefix}_MAX_REQUESTS`] || env.REPORT_MAX_REQUESTS || 400);
@@ -232,7 +226,7 @@ async function main() {
   }
   if (from > to) throw new Error('Invalid reporting period');
   const period = { from_date: from, to_date: to };
-  const root = path.resolve('outputs/gemini_work');
+  const root = path.resolve('outputs/review_work');
   const policyDoc = await fs.readFile('docs/local_report_review.md', 'utf8');
   // Share the reviewed judgement contract, excluding instructions for the local CLI workflow.
   const policyText = policyDoc.split('## 판정 기준')[1].split('## 기사별 응답 형식')[0];
@@ -284,7 +278,7 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(async error => {
   console.error(error.message);
-  await write(path.resolve('outputs/gemini_work/status.json'), {
+  await write(path.resolve('outputs/review_work/status.json'), {
     status: 'failed', reason: error.status ? 'provider_error' : 'validation_or_execution',
     http_status: error.status || null, provider: PROVIDER.id, model: MODEL,
     period: { from_date: process.env.REPORT_FROM_DATE || null, to_date: process.env.REPORT_TO_DATE || null },

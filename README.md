@@ -151,6 +151,6 @@ Local preparation now includes **every dated source article in the requested mon
 
 A local build writes `coverage.json` alongside its PDFs. Missing monthly sources and `needs_review` evidence are distinguished from reviewed negative results in the matrix counts. Google News fallback now checks usable monthly evidence **after** official detail/date enrichment. Live collection success still depends on the source sites.
 
-### Gemini 무료 API로 GitHub Actions 실행
+### GitHub Actions로 월간 보고서 실행
 
-`collect-company-signals`는 `GEMINI_API_KEY`로 기사별 통합 분석과 한·영 PDF 생성을 수행한다. Google 프로젝트가 Free Tier임을 확인한 뒤 Actions Variable `GEMINI_FREE_TIER_CONFIRMED=true`를 설정해야 한다. 기본 40건씩 처리하고 한도에 도달하면 저장 후 중단하며, 같은 기간으로 재실행하면 이어간다. 설정·제약·PDF 다운로드 방법은 [Gemini 무료 보고서 실행 안내](docs/gemini_free_report.md)를 참고한다.
+`collect-company-signals`는 저장소 시크릿 `OPENAI_API_KEY`(내용은 NVIDIA build 키다)로 기사별 통합 분석과 한·영 PDF 생성을 수행한다. 판정은 NVIDIA build 의 OpenAI 호환 엔드포인트로 보내며 모델은 `NVIDIA_MODEL`로 바꾼다. 한 번에 최대 400건을 처리하고 한도에 도달하면 진행분을 저장한 뒤 중단하며, 같은 기간으로 재실행하면 이어간다.

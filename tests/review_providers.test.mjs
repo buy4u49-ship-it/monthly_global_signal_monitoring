@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as provider_module from '../scripts/review_providers.mjs';
-const { NVIDIA, GEMINI, resolveProvider, toJsonSchema, decisionProperties } = provider_module;
-import { configuration, requestReview } from '../scripts/gemini_report.mjs';
+const { NVIDIA, resolveProvider, toJsonSchema, decisionProperties } = provider_module;
+import { configuration, requestReview } from '../scripts/review_report.mjs';
 import { groupArticles } from '../scripts/local_report.mjs';
 
 const article = company => groupArticles([{ company, target_no: 1, url: `https://example.com/${company}`, title: 'Pilot plant', published_at: '2026-08-02', investment_signal_no: 2, target_technology: 'material', content_text: 'The company plans a pilot plant.' }], [], { from_date: '2026-08-01', to_date: '2026-08-31' })[0];
@@ -10,7 +10,7 @@ const decisions = [{ candidate_id: 'investment:2', entity_supported: true, targe
 const chat = (ds = decisions, finish_reason = 'stop') =>
   new Response(JSON.stringify({ choices: [{ finish_reason, message: { content: JSON.stringify({ decisions: ds }) } }], usage: { total_tokens: 12 } }));
 
-test('the Gemini schema converts to a strict JSON Schema without losing enums', () => {
+test('the decision schema converts to a strict JSON Schema without losing enums', () => {
   const schema = toJsonSchema({ type: 'OBJECT', properties: { decisions: { type: 'ARRAY', items: { type: 'OBJECT', properties: decisionProperties } } } });
   const item = schema.properties.decisions.items;
   assert.equal(schema.type, 'object');
@@ -60,7 +60,7 @@ test('requestReview sends the NVIDIA article to the OpenAI-compatible endpoint',
     return chat();
   }, false, NVIDIA);
   assert.equal(review.provider, 'nvidia');
-  assert.equal(review.reviewer, `${NVIDIA.model}/gemini-article-v1`);
+  assert.equal(review.reviewer, `${NVIDIA.model}/article-review-v1`);
   assert.deepEqual(review.usage, { total_tokens: 12 });
 });
 
@@ -81,16 +81,9 @@ test('NVIDIA needs no free-tier confirmation and reads the single shared key sec
   assert.throws(() => configuration({ REPORT_PROVIDER: 'nvidia' }, NVIDIA), /OPENAI_API_KEY is required/);
 });
 
-test('the provider is chosen by env and the model stays overridable', () => {
-  assert.equal(resolveProvider({}).id, 'gemini');
-  assert.equal(resolveProvider({ REPORT_PROVIDER: 'nvidia' }).model, NVIDIA.model);
-  assert.equal(resolveProvider({ REPORT_PROVIDER: 'gemini', GEMINI_MODEL: 'gemini-3.1-flash-lite' }).model, 'gemini-3.1-flash-lite');
-  assert.throws(() => resolveProvider({ REPORT_PROVIDER: 'openai' }), /Unknown REPORT_PROVIDER/);
-});
-
-test('the two providers never share a cached judgement', () => {
-  assert.notEqual(GEMINI.model, NVIDIA.model);
-  assert.notEqual(GEMINI.id, NVIDIA.id);
+test('the model stays overridable and reaches the cache identity', () => {
+  assert.equal(resolveProvider({}).model, NVIDIA.model);
+  assert.equal(resolveProvider({ NVIDIA_MODEL: ' deepseek-ai/other ' }).model, 'deepseek-ai/other');
 });
 
 test('an auth failure can be diagnosed without printing the key', () => {
@@ -112,16 +105,14 @@ test('a non-quote validation failure records what actually broke', async t => {
   const fs = await import('node:fs/promises');
   const os = await import('node:os');
   const path = await import('node:path');
-  const { reviewArticles } = await import('../scripts/gemini_report.mjs');
+  const { reviewArticles } = await import('../scripts/review_report.mjs');
   const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'validation-diagnostics-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   // 투자 후보에 not_applicable 은 스키마상 허용되지만 판정 계약에서는 거부된다.
   const broken = [{ ...decisions[0], event_stage: 'not_applicable', reason_ko: '사유', summary_ko: '요약문', summary_en: 'summary' }];
-  // reviewArticles 는 환경이 정한 기본 프로바이더(Gemini)를 쓰므로 응답도 그 형식이어야 한다.
-  const geminiShaped = () => new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ decisions: broken }) }] } }] }));
   const state = await reviewArticles({
     articles: [article('Broken')], reviewDir, policy: '', config: { apiKey: 'k', maxRequests: 1, delayMs: 0 },
-    sleep: async () => {}, fetchImpl: async () => geminiShaped(),
+    sleep: async () => {}, fetchImpl: async () => chat(broken),
   });
   assert.equal(state.diagnostics.length, 1);
   const detail = JSON.parse(await fs.readFile(path.join(path.dirname(reviewDir), state.diagnostics[0].file), 'utf8'));

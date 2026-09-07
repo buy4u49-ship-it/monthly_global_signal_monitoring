@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { configuration, requestReview, reviewArticles, separateVerifiedQuotes, MODEL } from '../scripts/gemini_report.mjs';
+import { configuration, requestReview, reviewArticles, separateVerifiedQuotes, MODEL } from '../scripts/review_report.mjs';
 import { groupArticles } from '../scripts/local_report.mjs';
 
 const article = company => groupArticles([{ company, target_no: 1, url: `https://example.com/${company}`, title: 'Pilot plant', published_at: '2026-08-02', investment_signal_no: 2, target_technology: 'material', content_text: 'The company plans a pilot plant.' }], [], { from_date: '2026-08-01', to_date: '2026-08-31' })[0];
 const decisions = [{ candidate_id: 'investment:2', entity_supported: true, target_technology_supported: true, indicator_supported: true, leading_indicator_supported: true, event_stage: 'planned', quality: 'pass', reason_ko: '파일럿 생산시설 계획을 확인함', evidence_quotes: ['The company plans a pilot plant.'], summary_ko: '파일럿 생산시설 계획', summary_en: 'Pilot production plant planned' }];
-const response = (ds = decisions, finishReason = 'STOP') => new Response(JSON.stringify({ candidates: [{ finishReason, content: { parts: [{ text: JSON.stringify({ decisions: ds }) }] } }] }));
+const response = (ds = decisions, finish_reason = 'stop') => new Response(JSON.stringify({ choices: [{ finish_reason, message: { content: JSON.stringify({ decisions: ds }) } }], usage: {} }));
 const config = { apiKey: 'test-key', maxRequests: 40, delayMs: 15000 };
 
 // Actual failed HyproMag investment:2 quote: the model omitted the middle sentence.
@@ -44,30 +44,30 @@ test('quote separation rejects altered numbers, ellipses, reversed passages and 
 });
 
 test('requires explicit free-tier confirmation and bounds API requests', () => {
-  assert.throws(() => configuration({ GEMINI_API_KEY: 'key' }), /FREE_TIER_CONFIRMED/);
-  assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true' }), /API_KEY/);
-  assert.deepEqual(configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key' }), { apiKey: 'key', maxRequests: 400, delayMs: 4500 });
-  assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '0' }), /1..400/);
-  assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_DELAY_MS: '3999' }), /4000..60000/);
-  assert.deepEqual(configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '400', GEMINI_DELAY_MS: '4500' }), { apiKey: 'key', maxRequests: 400, delayMs: 4500 });
+  assert.throws(() => configuration({}), /OPENAI_API_KEY is required/);
+  assert.deepEqual(configuration({ OPENAI_API_KEY: 'key' }), { apiKey: 'key', maxRequests: 400, delayMs: 1600 });
+  assert.throws(() => configuration({ OPENAI_API_KEY: 'key', NVIDIA_MAX_REQUESTS: '0' }), /1..400/);
+  assert.throws(() => configuration({ OPENAI_API_KEY: 'key', NVIDIA_DELAY_MS: '1499' }), /1500..60000/);
+  assert.deepEqual(configuration({ OPENAI_API_KEY: 'key', NVIDIA_MAX_REQUESTS: '400', NVIDIA_DELAY_MS: '1600' }), { apiKey: 'key', maxRequests: 400, delayMs: 1600 });
 });
 
-test('uses one fixed Gemini endpoint, structured output and all article candidates', async () => {
+test('uses one fixed endpoint, structured output and all article candidates', async () => {
   const a = article('Example');
   const review = await requestReview(a, 'policy', 'test-key', async (url, init) => {
-    assert.equal(url, `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`);
-    assert.equal(init.headers['x-goog-api-key'], 'test-key');
+    assert.equal(url, 'https://integrate.api.nvidia.com/v1/chat/completions');
+    assert.equal(init.headers.Authorization, 'Bearer test-key');
     const body = JSON.parse(init.body);
-    assert.equal(body.generationConfig.responseMimeType, 'application/json');
+    assert.equal(body.model, MODEL);
+    assert.equal(body.response_format.type, 'json_schema');
     assert.equal(body.tools, undefined);
-    assert.equal(JSON.parse(body.contents[0].parts[0].text).candidates.length, a.candidates.length);
+    assert.equal(JSON.parse(body.messages[1].content).candidates.length, a.candidates.length);
     return response();
   });
-  assert.equal(review.provider, 'gemini');
+  assert.equal(review.provider, 'nvidia');
 });
 
 test('quota interruption preserves completed reviews and the next run resumes only pending articles', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   const articles = [article('A'), article('B')];
   let calls = 0;
@@ -84,7 +84,7 @@ test('quota interruption preserves completed reviews and the next run resumes on
 });
 
 test('request budget pauses without fallback and corrupt evidence is never cached', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   const articles = [article('A'), article('B')];
   const state = await reviewArticles({ articles, reviewDir, policy: '', config: { ...config, maxRequests: 1 }, fetchImpl: async () => response() });
@@ -98,12 +98,12 @@ test('request budget pauses without fallback and corrupt evidence is never cache
 });
 
 test('authentication failures and truncated responses fail closed', async () => {
-  await assert.rejects(requestReview(article('A'), '', 'key', async () => new Response('secret detail', { status: 403 })), /^Error: Gemini HTTP 403$/);
-  await assert.rejects(requestReview(article('A'), '', 'key', async () => response(decisions, 'MAX_TOKENS')), /incomplete_response/);
+  await assert.rejects(requestReview(article('A'), '', 'key', async () => new Response('secret detail', { status: 403 })), /^Error: NVIDIA HTTP 403$/);
+  await assert.rejects(requestReview(article('A'), '', 'key', async () => response(decisions, 'length')), /incomplete_response/);
 });
 
 test('invalid article retries once, later articles are saved, and resume repairs only the failed article', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   const articles = [article('Bad'), article('Good')];
   let calls = 0;
@@ -112,7 +112,7 @@ test('invalid article retries once, later articles are saved, and resume repairs
     sleep: async ms => delays.push(ms), fetchImpl: async (_, init) => {
       const body = JSON.parse(init.body);
       calls++;
-      if (calls === 2) assert.match(body.contents[0].parts[1].text, /Copy evidence_quotes verbatim/);
+      if (calls === 2) assert.match(body.messages[2].content, /Copy evidence_quotes verbatim/);
       return calls <= 2 ? response([]) : response();
     } });
   assert.equal(first.status, 'paused');
@@ -127,7 +127,7 @@ test('invalid article retries once, later articles are saved, and resume repairs
 });
 
 test('retry respects request budget and quota; authentication still fails immediately', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   const args = { articles: [article('A')], reviewDir, policy: '', config, sleep: async () => {} };
   let calls = 0;
@@ -144,9 +144,9 @@ test('retry respects request budget and quota; authentication still fails immedi
 });
 
 test('malformed or truncated output recovers on retry without caching the bad response', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
-  for (const [index, bad] of [() => response(decisions, 'MAX_TOKENS'), () => new Response('null'),
+  for (const [index, bad] of [() => response(decisions, 'length'), () => new Response('null'),
     () => new Response('{'), () => response([null]), () => response([{ ...decisions[0], evidence_quotes: [] }])].entries()) {
     let calls = 0;
     const result = await reviewArticles({ articles: [article(`A${index}`)], reviewDir, policy: '', config,
@@ -157,7 +157,7 @@ test('malformed or truncated output recovers on retry without caching the bad re
 });
 
 test('persistent provider outages use bounded backoff and expose only safe diagnostics', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   let calls = 0;
   const delays = [];
@@ -173,7 +173,7 @@ test('persistent provider outages use bounded backoff and expose only safe diagn
 });
 
 test('503 recovers automatically with cached progress and retries obey budget', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   const a = article('Cached'), b = article('Pending');
   const args = { reviewDir, policy: '', config, sleep: async () => {}, random: () => 0 };
@@ -189,7 +189,7 @@ test('503 recovers automatically with cached progress and retries obey budget', 
 });
 
 test('quote failure artifacts retain both attempts, original evidence and normalized comparisons without secrets', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-diagnostics-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-diagnostics-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   const a = article('Diagnostic');
   a.evidence.push('Company’s capacity is 10 tonnes.');
@@ -223,7 +223,7 @@ test('quote failure artifacts retain both attempts, original evidence and normal
 });
 
 test('missing and malformed quotes produce readable diagnostics without saving arbitrary objects', async t => {
-  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-diagnostics-'));
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'article-diagnostics-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   for (const quotes of [[], null, [{ secret: 'private object' }]]) {
     const state = await reviewArticles({ articles: [article('Missing')], reviewDir, policy: '', config: { ...config, maxRequests: 1 },

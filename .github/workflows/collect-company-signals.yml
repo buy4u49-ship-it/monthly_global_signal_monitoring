@@ -20,17 +20,12 @@ on:
         required: false
         default: "2"
 
-      provider:
-        description: "Review API to use"
-        type: choice
-        options: ["gemini", "nvidia"]
-        default: "gemini"
-      gemini_max_requests:
+      max_requests:
         description: "Maximum API requests including retries (1-400)"
         type: string
         default: "400"
-      gemini_delay_ms:
-        description: "Delay between requests in ms. Leave empty to use the provider default (gemini 4500, nvidia 1600)"
+      delay_ms:
+        description: "Delay between requests in ms. Leave empty for the 40 RPM default (1600)"
         type: string
         default: ""
       refresh:
@@ -90,40 +85,37 @@ jobs:
           echo "from_date=$from_date" >> "$GITHUB_OUTPUT"
           echo "to_date=$to_date" >> "$GITHUB_OUTPUT"
           echo "Reporting period: $from_date .. $to_date"
-      - name: Restore Gemini progress
+      - name: Restore review progress
         uses: actions/cache/restore@v5
         with:
-          path: outputs/gemini_work
-          key: gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/review_work
+          key: review-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-
-      - name: Analyze articles and build both PDFs
-        id: gemini
+            review-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-
+      - name: Review articles and build both PDFs
+        id: review
         env:
-          REPORT_PROVIDER: ${{ inputs.provider || vars.REPORT_PROVIDER || 'gemini' }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED }}
           # 이름은 OPENAI_API_KEY 지만 내용은 NVIDIA build 키다.
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          REPORT_MAX_REQUESTS: ${{ inputs.gemini_max_requests || vars.GEMINI_MAX_REQUESTS || '400' }}
-          REPORT_DELAY_MS: ${{ inputs.gemini_delay_ms || vars.GEMINI_DELAY_MS || '' }}
+          REPORT_MAX_REQUESTS: ${{ inputs.max_requests || vars.REPORT_MAX_REQUESTS || '400' }}
+          REPORT_DELAY_MS: ${{ inputs.delay_ms || vars.REPORT_DELAY_MS || '' }}
           REPORT_FROM_DATE: ${{ steps.report_period.outputs.from_date }}
           REPORT_TO_DATE: ${{ steps.report_period.outputs.to_date }}
           REPORT_ISSUE_NUMBER: ${{ inputs.issue_number || '2' }}
           REPORT_REFRESH: ${{ inputs.refresh || 'false' }}
-        run: node scripts/gemini_report.mjs
-      - name: Save progress even when quota is exhausted
-        if: ${{ always() && steps.gemini.outcome != 'skipped' }}
+        run: node scripts/review_report.mjs
+      - name: Save review progress even when quota is exhausted
+        if: ${{ always() && steps.review.outcome != 'skipped' }}
         uses: actions/cache/save@v5
         with:
-          path: outputs/gemini_work
-          key: gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/review_work
+          key: review-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Upload progress and results for inspection
-        if: ${{ always() && steps.gemini.outcome != 'skipped' }}
+        if: ${{ always() && steps.review.outcome != 'skipped' }}
         uses: actions/upload-artifact@v6
         with:
-          name: gemini-report-${{ github.run_id }}-${{ github.run_attempt }}
-          path: outputs/gemini_work
+          name: article-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/review_work
           retention-days: 30
           if-no-files-found: ignore
       - name: Validate report inputs
@@ -136,5 +128,5 @@ jobs:
           retention-days: 30
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Update Gemini company signals and bilingual reports"
+          commit_message: "Update company signals and bilingual reports"
           file_pattern: outputs/latest_*.json public/reports/latest_report.pdf public/reports/latest_report_en.pdf

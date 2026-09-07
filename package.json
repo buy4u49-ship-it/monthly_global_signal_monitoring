@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "report:gemini": "node scripts/gemini_report.mjs",
+    "report:review": "node scripts/review_report.mjs",
     "report:local": "node scripts/local_report.mjs",
     "test": "node --test",
     "dev": "next dev",

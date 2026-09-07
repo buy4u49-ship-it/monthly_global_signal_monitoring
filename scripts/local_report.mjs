@@ -153,7 +153,7 @@ export function importReview(article, review) {
         ai_event_stage: decision.event_stage, ai_summary_quality: decision.quality,
         ai_summary_reason: clean(decision.reason_ko),
         ai_summary_ko: clean(decision.summary_ko), ai_summary_en: clean(decision.summary_en),
-        ai_summary_source: review.provider === "gemini" ? "gemini_article_review" : "local_agent_review", ai_summary_reviewer: review.reviewer,
+        ai_summary_source: review.provider ? `${review.provider}_article_review` : "local_agent_review", ai_summary_reviewer: review.reviewer,
         ai_summary_cache_key: article.id, ai_evidence_quotes: quotes,
       };
       const errors = validateRows([row], candidate.kind);

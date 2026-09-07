@@ -14,7 +14,7 @@ export const RETRY_INSTRUCTION =
 
 const EVENT_STAGES = ['exploratory', 'planned', 'precursor', 'committed', 'completed', 'unclear', 'not_applicable'];
 
-// Gemini 스키마 표기(대문자 타입). NVIDIA/OpenAI 쪽은 아래에서 JSON Schema로 변환해 쓴다.
+// 스키마는 여기 한 곳에만 정의하고, 아래에서 표준 JSON Schema 로 변환해 보낸다.
 export const decisionProperties = {
   candidate_id: { type: 'STRING' },
   ...Object.fromEntries(
@@ -29,7 +29,7 @@ export const decisionProperties = {
 
 const JSON_TYPES = { STRING: 'string', BOOLEAN: 'boolean', ARRAY: 'array', OBJECT: 'object', NUMBER: 'number', INTEGER: 'integer' };
 
-// 스키마 정의를 한 곳에만 두려고 Gemini 표기를 표준 JSON Schema로 옮긴다.
+// strict 구조화 출력에 맞춰 표준 JSON Schema 로 옮긴다.
 // strict 모드는 모든 필드가 required 이고 additionalProperties 가 false 여야 한다.
 export function toJsonSchema(node) {
   const type = JSON_TYPES[node.type];
@@ -52,60 +52,6 @@ const decisionsEnvelope = {
 
 const articleText = article => JSON.stringify({ ...article, candidates: article.candidates.map(({ row, ...c }) => c) });
 
-export const GEMINI = {
-  id: 'gemini',
-  label: 'Gemini',
-  model: 'gemini-3.5-flash-lite',
-  keyEnv: ['GEMINI_API_KEY'],
-  // 관측된 무료 티어 15 RPM. 4500ms가 안전값, 4000이 한도다.
-  minDelayMs: 4000,
-  defaultDelayMs: 4500,
-  requiresFreeTierConfirmation: true,
-  url(model) {
-    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  },
-  headers(apiKey) {
-    return { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey };
-  },
-  body({ article, policy, retry }) {
-    return {
-      systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n${policy}` }] },
-      contents: [{ role: 'user', parts: [
-        { text: articleText(article) },
-        ...(retry ? [{ text: RETRY_INSTRUCTION }] : []),
-      ] }],
-      generationConfig: {
-        maxOutputTokens: 16384, responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'OBJECT',
-          properties: { decisions: { type: 'ARRAY', items: { type: 'OBJECT', properties: decisionProperties, required: Object.keys(decisionProperties) } } },
-          required: ['decisions'],
-        },
-      },
-    };
-  },
-  // 판정 본문만 돌려준다. thought 파트는 추론 흔적이라 버린다.
-  parse(payload, invalid) {
-    const candidate = payload?.candidates?.[0];
-    if (candidate?.finishReason !== 'STOP') throw invalid('incomplete_response');
-    if (!Array.isArray(candidate.content?.parts)) throw invalid('invalid_parts');
-    return {
-      text: candidate.content.parts.filter(p => p && !p.thought).map(p => p.text || '').join(''),
-      usage: payload.usageMetadata || {},
-    };
-  },
-  async listModels(apiKey) {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
-      headers: { 'x-goog-api-key': apiKey }, signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) return [];
-    const payload = await response.json();
-    return (payload.models || [])
-      .filter(m => m.name?.includes('flash') && m.supportedGenerationMethods?.includes('generateContent'))
-      .map(m => m.name);
-  },
-};
-
 export const NVIDIA = {
   id: 'nvidia',
   label: 'NVIDIA',
@@ -114,10 +60,10 @@ export const NVIDIA = {
   // 내용은 NVIDIA build 키다. 그래서 같은 시크릿을 읽는 옛 OpenAI 경로
   // (summarize_signal_evidence.mjs, check_openai_access.mjs)는 더 이상 동작하지 않는다.
   keyEnv: ['OPENAI_API_KEY'],
+  // 40 RPM 관측치. 무료 티어 확인 플래그는 필요 없다. 선불 크레딧이라 조용히 과금되지 않는다.
   // 40 RPM 이면 1500ms 다. 1600ms 를 기본값으로 두어 여유를 둔다.
   minDelayMs: 1500,
   defaultDelayMs: 1600,
-  requiresFreeTierConfirmation: false,
   expectedKeyPrefix: 'nvapi-',
   url() {
     return 'https://integrate.api.nvidia.com/v1/chat/completions';
@@ -187,13 +133,8 @@ export function describeKeyShape(rawKey) {
   };
 }
 
-export const PROVIDERS = { gemini: GEMINI, nvidia: NVIDIA };
-
+// 모델은 NVIDIA_MODEL 로만 바꾼다. 캐시 식별자에 들어가므로 바뀌면 재판정된다.
 export function resolveProvider(env = process.env) {
-  const name = String(env.REPORT_PROVIDER || 'gemini').trim().toLowerCase();
-  const provider = PROVIDERS[name];
-  if (!provider) throw new Error(`Unknown REPORT_PROVIDER: ${name}. Use one of ${Object.keys(PROVIDERS).join(', ')}`);
-  // 모델은 프로바이더별 환경변수로만 바꾼다. 캐시 식별자에 들어가므로 바뀌면 재판정된다.
-  const override = env[`${provider.id.toUpperCase()}_MODEL`];
-  return override ? { ...provider, model: override.trim() } : provider;
+  const override = env.NVIDIA_MODEL;
+  return override ? { ...NVIDIA, model: override.trim() } : NVIDIA;
 }
