@@ -1,37 +1,21 @@
 {
-  "run_started_at": "2026-09-04T01:14:07Z",
-  "status": "completed",
-  "method": "luna_first_terra_retry",
-  "luna_model": "gpt-5.6-luna",
-  "terra_model": "gpt-5.6-terra",
-  "reasoning_effort": "low",
-  "max_output_tokens": 1600,
-  "retry_max_output_tokens": 3200,
-  "summarize_relevant_signals": true,
-  "cache_path": "outputs/ai_summary_cache.json",
-  "cache_entry_count": 1174,
-  "cache_hit_count": 0,
-  "cache_miss_count": 174,
-  "cache_stored_count": 174,
-  "investment_signal_count": 109,
-  "relevant_signal_count": 65,
-  "summarized_count": 109,
-  "terra_retry_count": 38,
-  "investment_failed_count": 0,
-  "relevant_failed_count": 0,
-  "failed_count": 0,
-  "outputs": {
-    "investment": {
-      "latest_json": "outputs/latest_investment_signals.json",
-      "latest_csv": "outputs/latest_investment_signals.csv",
-      "json": "outputs/investment_signals_ai_summary_20260904T011406Z.json",
-      "csv": "outputs/investment_signals_ai_summary_20260904T011406Z.csv"
-    },
-    "relevant": {
-      "latest_json": "outputs/latest_relevant_signals.json",
-      "latest_csv": "outputs/latest_relevant_signals.csv",
-      "json": "outputs/relevant_signals_ai_summary_20260904T011407Z.json",
-      "csv": "outputs/relevant_signals_ai_summary_20260904T011407Z.csv"
+  "requests": 2,
+  "cached": 293,
+  "completed": 294,
+  "total": 294,
+  "failed_articles": [],
+  "diagnostics": [
+    {
+      "article_id": "36d9a61515eb0be863c981c9",
+      "attempt": 1,
+      "reason": "evidence_mismatch",
+      "file": "reviews/diagnostics/36d9a61515eb0be863c981c9/f08a181f-532d-4225-9335-dc9bca3138aa-attempt-1.json"
     }
-  }
+  ],
+  "status": "completed",
+  "period": {
+    "from_date": "2026-08-01",
+    "to_date": "2026-08-31"
+  },
+  "model": "gemini-3.5-flash-lite"
 }

@@ -1,5 +1,5 @@
 {
-  "run_started_at": "2026-09-04T00:59:40Z",
+  "run_started_at": "2026-09-06T20:01:22Z",
   "company_count": 77,
   "canonical_company_count": 77,
   "sources": [
@@ -11,7 +11,7 @@
   "date_range_mode": "explicit",
   "from_date": "2026-08-01",
   "to_date": "2026-08-31",
-  "lookback_days": 37,
+  "lookback_days": 39,
   "max_per_source": 6,
   "max_per_company": 10,
   "company_concurrency": 4,
@@ -20,13 +20,13 @@
   "max_detail_per_company": 10,
   "fallback_mode": "missing",
   "fallback_min_results": 1,
-  "request_count": 716,
+  "request_count": 737,
   "fetch_retries": 2,
   "retry_count": 8,
-  "result_count": 431,
-  "official_result_count": 388,
-  "press_release_result_count": 180,
-  "undated_result_count": 131,
+  "result_count": 499,
+  "official_result_count": 356,
+  "press_release_result_count": 175,
+  "undated_result_count": 107,
   "excluded_non_article_count": 10012,
   "excluded_non_article_reasons": {
     "index_or_category_page": 9796,
@@ -108,12 +108,6 @@
       "reason": "index_or_category_page"
     },
     {
-      "company": "Moderna",
-      "title": "Vote here >",
-      "url": "https://www.proxyvote.com/",
-      "reason": "index_or_category_page"
-    },
-    {
       "company": "Cytiva",
       "title": "",
       "url": "https://www.danaher.com/",
@@ -139,20 +133,8 @@
     },
     {
       "company": "Moderna",
-      "title": "Health Care Professionals",
-      "url": "https://modernapro.com/",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Moderna",
-      "title": "Investors",
-      "url": "https://investors.modernatx.com/",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Moderna",
-      "title": "Clinical Trials",
-      "url": "https://trials.modernatx.com/",
+      "title": "Vote here >",
+      "url": "https://www.proxyvote.com/",
       "reason": "index_or_category_page"
     },
     {
@@ -177,6 +159,24 @@
       "company": "West Pharmaceutical",
       "title": "Home",
       "url": "https://www.westpharma.com/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Moderna",
+      "title": "Health Care Professionals",
+      "url": "https://modernapro.com/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Moderna",
+      "title": "Investors",
+      "url": "https://investors.modernatx.com/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Moderna",
+      "title": "Clinical Trials",
+      "url": "https://trials.modernatx.com/",
       "reason": "index_or_category_page"
     },
     {
@@ -360,30 +360,6 @@
       "reason": "index_or_category_page"
     },
     {
-      "company": "Skyworks",
-      "title": "",
-      "url": "https://www.skyworksinc.com/",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Skyworks",
-      "title": "About",
-      "url": "https://www.skyworksinc.com/About-Us",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Skyworks",
-      "title": "About Us",
-      "url": "https://www.skyworksinc.com/About/",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Skyworks",
-      "title": "Awards",
-      "url": "https://www.skyworksinc.com/About/Awards",
-      "reason": "index_or_category_page"
-    },
-    {
       "company": "Eli Lilly and Company",
       "title": "",
       "url": "https://www.lilly.com/news",
@@ -405,6 +381,30 @@
       "company": "Eli Lilly and Company",
       "title": "",
       "url": "https://esg.lilly.com/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Skyworks",
+      "title": "",
+      "url": "https://www.skyworksinc.com/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Skyworks",
+      "title": "About",
+      "url": "https://www.skyworksinc.com/About-Us",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Skyworks",
+      "title": "About Us",
+      "url": "https://www.skyworksinc.com/About/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Skyworks",
+      "title": "Awards",
+      "url": "https://www.skyworksinc.com/About/Awards",
       "reason": "index_or_category_page"
     },
     {
@@ -528,30 +528,6 @@
       "reason": "index_or_category_page"
     },
     {
-      "company": "ASML",
-      "title": "ASML Logo",
-      "url": "https://www.asml.com/en",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "ASML",
-      "title": "Company overview",
-      "url": "https://www.asml.com/en/company",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "ASML",
-      "title": "About ASML overview",
-      "url": "https://www.asml.com/en/company/about-asml",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "ASML",
-      "title": "Stories",
-      "url": "https://www.asml.com/en/company/stories",
-      "reason": "index_or_category_page"
-    },
-    {
       "company": "Prodrive",
       "title": "Home",
       "url": "https://prodrive-technologies.com/en/",
@@ -573,6 +549,30 @@
       "company": "Prodrive",
       "title": "Sustainability",
       "url": "https://prodrive-technologies.com/en/about-us/sustainability/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "ASML",
+      "title": "ASML Logo",
+      "url": "https://www.asml.com/en",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "ASML",
+      "title": "Company overview",
+      "url": "https://www.asml.com/en/company",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "ASML",
+      "title": "About ASML overview",
+      "url": "https://www.asml.com/en/company/about-asml",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "ASML",
+      "title": "Stories",
+      "url": "https://www.asml.com/en/company/stories",
       "reason": "index_or_category_page"
     },
     {
@@ -672,30 +672,6 @@
       "reason": "index_or_category_page"
     },
     {
-      "company": "Infineon",
-      "title": "English",
-      "url": "https://www.infineon.com/about/press",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Infineon",
-      "title": "中文",
-      "url": "https://www.infineon.cn/about/press",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Infineon",
-      "title": "日本語",
-      "url": "https://www.infineon.com/ja/about/press",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Infineon",
-      "title": "Deutsch",
-      "url": "https://www.infineon.com/de/about/press",
-      "reason": "index_or_category_page"
-    },
-    {
       "company": "Heidenhain",
       "title": "",
       "url": "https://www.heidenhain.com/",
@@ -720,6 +696,54 @@
       "reason": "index_or_category_page"
     },
     {
+      "company": "Infineon",
+      "title": "English",
+      "url": "https://www.infineon.com/about/press",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Infineon",
+      "title": "中文",
+      "url": "https://www.infineon.cn/about/press",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Infineon",
+      "title": "日本語",
+      "url": "https://www.infineon.com/ja/about/press",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Infineon",
+      "title": "Deutsch",
+      "url": "https://www.infineon.com/de/about/press",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Schmalz",
+      "title": "",
+      "url": "https://www.schmalz.com/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Schmalz",
+      "title": "Home",
+      "url": "https://www.schmalz.com/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Schmalz",
+      "title": "",
+      "url": "https://www.linkedin.com/company/schmalz/",
+      "reason": "index_or_category_page"
+    },
+    {
+      "company": "Schmalz",
+      "title": "Energy Storage",
+      "url": "https://www.schmalz-energy.com/en",
+      "reason": "index_or_category_page"
+    },
+    {
       "company": "Bayer",
       "title": "English (EN)",
       "url": "https://www.bayer.com/en/investors/investor-news",
@@ -730,49 +754,24 @@
       "title": "",
       "url": "https://www.bayer.com/en/",
       "reason": "index_or_category_page"
-    },
-    {
-      "company": "Bayer",
-      "title": "This is Bayer",
-      "url": "https://www.bayer.com/en/about-us",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Bayer",
-      "title": "",
-      "url": "https://www.bayer.com/en/about-us",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Merck",
-      "title": "upgrade your browser",
-      "url": "http://browsehappy.com/",
-      "reason": "index_or_category_page"
-    },
-    {
-      "company": "Merck",
-      "title": "https://www.emdgroup.com",
-      "url": "https://www.emdgroup.com/",
-      "reason": "index_or_category_page"
     }
   ],
   "published_at_source_counts": {
-    "time_tag": 33,
+    "time_tag": 29,
     "jsonld": 64,
-    "listing": 92,
-    "body_text": 35,
-    "feed": 70,
+    "listing": 91,
+    "body_text": 32,
+    "feed": 170,
     "url": 3,
     "meta": 2,
-    "none": 131,
+    "none": 107,
     "text": 1
   },
-  "fallback_result_count": 43,
-  "companies_with_results": 71,
+  "fallback_result_count": 143,
+  "companies_with_results": 72,
   "companies_with_official_results": 62,
   "companies_without_results": [
     "Magnix",
-    "Besi",
     "Schmalz",
     "Plansee",
     "Texcell",
@@ -781,15 +780,15 @@
   "counts_by_company": {
     "Australian Strategic Metals": 3,
     "Cognex": 6,
-    "Corning": 6,
+    "Corning": 10,
     "Charles River": 6,
     "Cytiva": 4,
-    "Moderna": 5,
+    "Moderna": 10,
     "West Pharmaceutical": 10,
     "Dupont": 6,
     "Albemarle": 8,
     "TIMET": 1,
-    "Air Products": 1,
+    "Air Products": 7,
     "Chemours": 8,
     "BorgWarner": 10,
     "DOW": 6,
@@ -797,7 +796,7 @@
     "Amkor Technology": 7,
     "Onsemi": 7,
     "Qualcomm": 6,
-    "Skyworks": 2,
+    "Skyworks": 8,
     "Eli Lilly and Company": 2,
     "GE Healthcare": 7,
     "Boeing": 6,
@@ -805,9 +804,9 @@
     "Ouster": 9,
     "Applied Materials": 10,
     "Magnix": 0,
-    "Prodrive": 7,
-    "ASML": 6,
-    "Besi": 0,
+    "Prodrive": 10,
+    "ASML": 10,
+    "Besi": 6,
     "NXP": 5,
     "Norsk Hydro": 8,
     "Vestas": 8,
@@ -816,7 +815,7 @@
     "Schmalz": 0,
     "Bayer": 10,
     "Merck": 10,
-    "Schott Pharma": 4,
+    "Schott Pharma": 6,
     "BASF": 10,
     "Evonik Industries": 10,
     "Heraeus": 6,
@@ -826,33 +825,33 @@
     "Solvay": 2,
     "Syensqo": 2,
     "Hexagon AB": 4,
-    "ABB": 9,
+    "ABB": 10,
     "Maxon": 10,
     "Siemens-Gamesa": 8,
-    "Renishaw": 7,
+    "Renishaw": 10,
     "Nexeon": 2,
-    "Rio Tinto": 6,
+    "Rio Tinto": 10,
     "HyproMag": 2,
-    "EVG": 3,
+    "EVG": 9,
     "Plansee": 0,
     "Texcell": 0,
     "Veolia": 10,
     "Airbus": 6,
-    "Safran": 6,
-    "Air Liquide": 8,
+    "Safran": 10,
+    "Air Liquide": 10,
     "Arkema": 4,
     "DNP": 8,
     "Hitachi Metals": 2,
     "Toppan Holdings": 6,
-    "Nabtesco": 4,
+    "Nabtesco": 6,
     "Asahi Glass": 3,
-    "JSR": 3,
+    "JSR": 7,
     "Shin-Etsu Chemicals": 10,
     "Tokyo Electron": 7,
     "Tosoh": 6,
     "Mitsubishi Chemical": 9,
     "Sumitomo Chemical": 7,
-    "Asahi Kasei": 1,
+    "Asahi Kasei": 7,
     "Toray": 1,
     "Cheng Uei Precision": 1,
     "Shanghai Electric Wind Power": 0
@@ -860,10 +859,10 @@
   "official_counts_by_company": {
     "Australian Strategic Metals": 3,
     "Cognex": 0,
-    "Corning": 6,
+    "Corning": 4,
     "Charles River": 6,
     "Cytiva": 4,
-    "Moderna": 5,
+    "Moderna": 4,
     "West Pharmaceutical": 10,
     "Dupont": 0,
     "Albemarle": 8,
@@ -885,7 +884,7 @@
     "Applied Materials": 10,
     "Magnix": 0,
     "Prodrive": 7,
-    "ASML": 6,
+    "ASML": 4,
     "Besi": 0,
     "NXP": 5,
     "Norsk Hydro": 8,
@@ -901,24 +900,24 @@
     "Heraeus": 0,
     "Jenoptik": 9,
     "EMM(Umicore)": 6,
-    "Umicore": 10,
+    "Umicore": 4,
     "Solvay": 2,
     "Syensqo": 0,
     "Hexagon AB": 4,
-    "ABB": 9,
-    "Maxon": 10,
+    "ABB": 4,
+    "Maxon": 4,
     "Siemens-Gamesa": 8,
-    "Renishaw": 7,
+    "Renishaw": 5,
     "Nexeon": 2,
-    "Rio Tinto": 6,
+    "Rio Tinto": 4,
     "HyproMag": 2,
     "EVG": 3,
     "Plansee": 0,
     "Texcell": 0,
     "Veolia": 10,
     "Airbus": 0,
-    "Safran": 6,
-    "Air Liquide": 8,
+    "Safran": 4,
+    "Air Liquide": 4,
     "Arkema": 4,
     "DNP": 8,
     "Hitachi Metals": 2,
@@ -1412,11 +1411,618 @@
     }
   ],
   "outputs": {
-    "json": "outputs/company_signals_20260904T005940Z.json",
-    "csv": "outputs/company_signals_20260904T005940Z.csv",
-    "summary": "outputs/collection_summary_20260904T005940Z.json",
-    "latest_json": "outputs/latest_company_signals.json",
-    "latest_csv": "outputs/latest_company_signals.csv",
-    "latest_summary": "outputs/latest_collection_summary.json"
-  }
+    "json": "/home/runner/work/monthly_global_signal_monitoring/monthly_global_signal_monitoring/outputs/gemini_work/2026-08-01_2026-08-31/company_signals_20260906T200122Z.json",
+    "csv": "/home/runner/work/monthly_global_signal_monitoring/monthly_global_signal_monitoring/outputs/gemini_work/2026-08-01_2026-08-31/company_signals_20260906T200122Z.csv",
+    "summary": "/home/runner/work/monthly_global_signal_monitoring/monthly_global_signal_monitoring/outputs/gemini_work/2026-08-01_2026-08-31/collection_summary_20260906T200122Z.json",
+    "latest_json": "/home/runner/work/monthly_global_signal_monitoring/monthly_global_signal_monitoring/outputs/gemini_work/2026-08-01_2026-08-31/latest_company_signals.json",
+    "latest_csv": "/home/runner/work/monthly_global_signal_monitoring/monthly_global_signal_monitoring/outputs/gemini_work/2026-08-01_2026-08-31/latest_company_signals.csv",
+    "latest_summary": "/home/runner/work/monthly_global_signal_monitoring/monthly_global_signal_monitoring/outputs/gemini_work/2026-08-01_2026-08-31/latest_collection_summary.json"
+  },
+  "review_coverage": [
+    {
+      "company": "Australian Strategic Metals",
+      "monthly_articles": 3,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Cognex",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Corning",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Charles River",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Cytiva",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Moderna",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "West Pharmaceutical",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Dupont",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Albemarle",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "TIMET",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    },
+    {
+      "company": "Air Products",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Chemours",
+      "monthly_articles": 4,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "BorgWarner",
+      "monthly_articles": 7,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "DOW",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Thermo Fisher",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Amkor Technology",
+      "monthly_articles": 2,
+      "needs_review_articles": 1,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://amkor.com/blog/arizona-korea-semiconductor-delegation/",
+          "title": "Arizona-Korea Semiconductor Delegation"
+        }
+      ]
+    },
+    {
+      "company": "Onsemi",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Qualcomm",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Skyworks",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Eli Lilly and Company",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "GE Healthcare",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Boeing",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "3M",
+      "monthly_articles": 5,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Ouster",
+      "monthly_articles": 7,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Applied Materials",
+      "monthly_articles": 8,
+      "needs_review_articles": 3,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://ir.appliedmaterials.com/news-releases/news-release-details/applied-materials-announces-third-quarter-2026-results",
+          "title": "Applied Materials Announces Third Quarter 2026 Results"
+        },
+        {
+          "url": "https://ir.appliedmaterials.com/news-releases/news-release-details/uc-berkeley-join-applied-materials-epic-center-speed-chip",
+          "title": "UC Berkeley to Join Applied Materials’ EPIC Center to Speed Chip Innovation"
+        },
+        {
+          "url": "https://www.appliedmaterials.com/us/en/newsroom/blogs/tackling-key-hbm-and-advanced-packaging-bottlenecks-for-ai-era.html",
+          "title": "Tackling Key HBM and Advanced Packaging Bottlenecks for the AI Era"
+        }
+      ]
+    },
+    {
+      "company": "Magnix",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    },
+    {
+      "company": "Prodrive",
+      "monthly_articles": 3,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "ASML",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Besi",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "NXP",
+      "monthly_articles": 3,
+      "needs_review_articles": 1,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://media.nxp.com/news-releases/news-release-details/nxp-semiconductors-breaks-ground-assembly-and-test-site",
+          "title": "NXP Semiconductors Breaks Ground on Assembly and Test Site Expansion in Malaysia"
+        }
+      ]
+    },
+    {
+      "company": "Norsk Hydro",
+      "monthly_articles": 4,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Vestas",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Heidenhain",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    },
+    {
+      "company": "Infineon",
+      "monthly_articles": 7,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Schmalz",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    },
+    {
+      "company": "Bayer",
+      "monthly_articles": 7,
+      "needs_review_articles": 1,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://www.bayer.com/en/media/media-events-overview",
+          "title": "Media Events Overview"
+        }
+      ]
+    },
+    {
+      "company": "Merck",
+      "monthly_articles": 2,
+      "needs_review_articles": 2,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://www.emdgroup.com/en/news/q2-2026-06-08-2026.html",
+          "title": "Merck KGaA, Darmstadt, Germany, Delivers Robust Q2 2026 Performance, Upgrades ..."
+        },
+        {
+          "url": "https://www.emdgroup.com/content/dam/web/corporate/non-images/investors/pre-recap---summary/q2-2026/Summary%20of%20key%20previous%20public%20financial%20disclosures%20at%20Merck%20events%20ahead%20of%20Q2_26%20earnings%20release_NA.pdf",
+          "title": "Summary of key previous public financial disclosures at Merck events ahead of Q2 26 earnings release NA.pdf"
+        }
+      ]
+    },
+    {
+      "company": "Schott Pharma",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "BASF",
+      "monthly_articles": 4,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Evonik Industries",
+      "monthly_articles": 4,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Heraeus",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Jenoptik",
+      "monthly_articles": 3,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "EMM(Umicore)",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    },
+    {
+      "company": "Umicore",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Solvay",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Syensqo",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Hexagon AB",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "ABB",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Maxon",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Siemens-Gamesa",
+      "monthly_articles": 3,
+      "needs_review_articles": 1,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://assets.siemens-energy.com/dam/3e846440-66dd-4a56-be75-b49d004e6741/2026-08-05_Q3_Analyst_presentation-pdf_Original%20file.pdf",
+          "title": "Q3 FY26 Presentation Analyst Call"
+        }
+      ]
+    },
+    {
+      "company": "Renishaw",
+      "monthly_articles": 5,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Nexeon",
+      "monthly_articles": 2,
+      "needs_review_articles": 1,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://www.nexeonglobal.com/media/national-wealth-fund-backs-nexeon-in-gbp100m-investment-round",
+          "title": "National Wealth Fund backs Nexeon in £100m investment round August 31, 2026"
+        }
+      ]
+    },
+    {
+      "company": "Rio Tinto",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "HyproMag",
+      "monthly_articles": 2,
+      "needs_review_articles": 1,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://mkango.ca/news/tr-1-standard-form-for-notification-of-major-holdings-2026-08-03/",
+          "title": "TR-1: Standard form for notification of major holdings"
+        }
+      ]
+    },
+    {
+      "company": "EVG",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Plansee",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    },
+    {
+      "company": "Texcell",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    },
+    {
+      "company": "Veolia",
+      "monthly_articles": 7,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Airbus",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Safran",
+      "monthly_articles": 7,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Air Liquide",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Arkema",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "DNP",
+      "monthly_articles": 8,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Hitachi Metals",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Toppan Holdings",
+      "monthly_articles": 2,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Nabtesco",
+      "monthly_articles": 6,
+      "needs_review_articles": 1,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://www.nabtesco.com/cms/wp-content/uploads/Results_Briefing_QA_for_FY2026_Q2_e.pdf",
+          "title": "FY2026/12 Q2 Result Briefing Q&A (PDF 302KB) Aug 05, 2026 Investor Relations Timely disclosure Investor Relations Financial statements Second quarter"
+        }
+      ]
+    },
+    {
+      "company": "Asahi Glass",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "JSR",
+      "monthly_articles": 4,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Shin-Etsu Chemicals",
+      "monthly_articles": 2,
+      "needs_review_articles": 2,
+      "status": "incomplete_evidence",
+      "follow_up": [
+        {
+          "url": "https://www.shinetsu.co.jp/en/ir/ir-data/ir-annual/",
+          "title": "2026.08.12 IR Uploaded Annual Report 2026"
+        },
+        {
+          "url": "https://www.shinetsu.co.jp/en/ir/ir-data/ir-briefing/",
+          "title": "2026.08.05 IR Summary of Telephone Conference on Financial Results for the First Quarter Ended June 30, 2026"
+        }
+      ]
+    },
+    {
+      "company": "Tokyo Electron",
+      "monthly_articles": 3,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Tosoh",
+      "monthly_articles": 3,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Mitsubishi Chemical",
+      "monthly_articles": 8,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Sumitomo Chemical",
+      "monthly_articles": 7,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Asahi Kasei",
+      "monthly_articles": 6,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Toray",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Cheng Uei Precision",
+      "monthly_articles": 1,
+      "needs_review_articles": 0,
+      "status": "reviewed",
+      "follow_up": []
+    },
+    {
+      "company": "Shanghai Electric Wind Power",
+      "monthly_articles": 0,
+      "needs_review_articles": 0,
+      "status": "no_monthly_sources",
+      "follow_up": []
+    }
+  ]
 }
