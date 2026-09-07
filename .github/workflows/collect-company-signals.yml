@@ -20,14 +20,19 @@ on:
         required: false
         default: "2"
 
+      provider:
+        description: "Review API to use"
+        type: choice
+        options: ["gemini", "nvidia"]
+        default: "gemini"
       gemini_max_requests:
         description: "Maximum API requests including retries (1-400)"
         type: string
         default: "400"
       gemini_delay_ms:
-        description: "Delay between API requests in milliseconds (4000-60000)"
+        description: "Delay between requests in ms. Leave empty to use the provider default (gemini 4500, nvidia 1600)"
         type: string
-        default: "4500"
+        default: ""
       refresh:
         description: "Recollect sources instead of resuming the saved collection"
         type: boolean
@@ -92,19 +97,23 @@ jobs:
           key: gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-
-      - name: Analyze articles with Gemini and build both PDFs
+      - name: Analyze articles and build both PDFs
         id: gemini
         env:
+          REPORT_PROVIDER: ${{ inputs.provider || vars.REPORT_PROVIDER || 'gemini' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED }}
-          GEMINI_MAX_REQUESTS: ${{ inputs.gemini_max_requests || vars.GEMINI_MAX_REQUESTS || '400' }}
-          GEMINI_DELAY_MS: ${{ inputs.gemini_delay_ms || vars.GEMINI_DELAY_MS || '4500' }}
+          # NVIDIA build 무료 키는 저장소에 OpenAI 이름으로 들어 있다.
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REPORT_MAX_REQUESTS: ${{ inputs.gemini_max_requests || vars.GEMINI_MAX_REQUESTS || '400' }}
+          REPORT_DELAY_MS: ${{ inputs.gemini_delay_ms || vars.GEMINI_DELAY_MS || '' }}
           REPORT_FROM_DATE: ${{ steps.report_period.outputs.from_date }}
           REPORT_TO_DATE: ${{ steps.report_period.outputs.to_date }}
           REPORT_ISSUE_NUMBER: ${{ inputs.issue_number || '2' }}
           REPORT_REFRESH: ${{ inputs.refresh || 'false' }}
         run: node scripts/gemini_report.mjs
-      - name: Save Gemini progress even when quota is exhausted
+      - name: Save progress even when quota is exhausted
         if: ${{ always() && steps.gemini.outcome != 'skipped' }}
         uses: actions/cache/save@v5
         with:
