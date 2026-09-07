@@ -246,7 +246,7 @@ export async function GET(request) {
       });
       const footerText =
         lang === "en"
-          ? `Invest KOREA · Global Investment Signal Monitoring · ${issueText}`
+          ? `Invest KOREA · Target-Company Global Investment Signal Monitor · ${issueText}`
           : `Invest KOREA · 타겟기업 글로벌 투자시그널 모니터링 · ${issueText}`;
       page.drawText(footerText, {
         x: 42,

@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import sys
 import tempfile
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -217,19 +218,19 @@ SIGNAL_DESCRIPTIONS = {
 
 # 국문 라벨 폭에 맞춰 짜인 알약·한 줄 슬롯에 그대로 들어가야 하므로 영문은 같은 뜻을 더 짧게 적는다.
 SIGNAL_DESCRIPTIONS_EN = {
-    1: "Supply chain & geopolitical risk · shifts, risk events, responses",
-    2: "Production expansion · capacity, site diversification, feasibility",
-    3: "Investment financing · bonds, equity raises, credit facilities",
-    4: "Technology ecosystem (R&D) · joint research, licensing, PoC",
-    5: "Key personnel movement · C-level moves, visits, due diligence",
+    1: "Supply Chain & Geopolitical Risk · risk events, responses",
+    2: "Production Expansion & Diversification · site reviews",
+    3: "Capital Securing & Financing · bonds, equity, credit lines",
+    4: "Tech Ecosystem Engagement (R&D) · joint research, PoC",
+    5: "Strategic Executive Move · C-level moves, due diligence",
 }
 
 INDICATOR_DESCRIPTION_EN = {
-    1: "Supply chain shifts and risk responses",
-    2: "Capacity additions, site diversification",
-    3: "Bonds, equity raises, credit facilities",
-    4: "Joint research, licensing, PoC, equity",
-    5: "C-level moves, visits, due diligence",
+    1: "Dependence reduction, diversification, regulatory risk, etc.",
+    2: "APAC expansion reviews, feasibility studies, etc.",
+    3: "Large bond issues, equity raises, credit lines, etc.",
+    4: "Joint research, licensing, PoC matching, equity, etc.",
+    5: "C-level moves, quiet visits, due-diligence signs, etc.",
 }
 
 COUNTRY_EN = {
@@ -302,18 +303,18 @@ TEXTS = {
         "matrix_desc": "77개 타겟기업의 {period} 글로벌 투자 시그널(전조현상). 활성화된 셀 = 당월 포착된 시그널 (최종 투자 확정·완료 제외, 조달·연구협업 등 전조 활동 포함).",
         "matrix_company": "기업",
         "matrix_legend_on": "시그널 포착",
-        "matrix_legend_off": "미포착",
+        "matrix_legend_off": "무신호",
         "matrix_indicators": "① 공급망·지정학 리스크 대응 · ② 생산 확대·다변화 의지 · ③ 투자 재원 확보 · ④ 기술 생태계 밀착(R&D) · ⑤ 핵심 전략 인력의 이동",
-        "matrix_footnote": "당월 시그널 포착 {on}개사 · 자료 검토 후 미포착 {reviewed_off}개사 · 수집근거 부족 {insufficient}개사",
+        "matrix_footnote": "당월 시그널 포착 {on}개사 · 시그널 미포착 {off}개사 | 상세는 다음 장",
         "detail_title": "기업별 시그널 상세",
-        "no_signal": "이번 달 해당 신호 미포착",
+        "no_signal": "이번 달 해당 신호 없음",
         "business_heading": "글로벌 사업현황",
         "business_empty": "해당 기간에 공식 출처 기반으로 요약할 수 있는 글로벌 사업현황 신호가 확인되지 않는다.",
         "target_item": "타겟품목",
         "target_tech": "타겟기술",
         "source_prefix": "출처",
         "source_fallback": "수집 출처",
-        "source_empty": "출처  -",
+        "source_empty": "출처  —",
         "source_press_release": "공식보도자료",
         "item_title": "품목별 글로벌 사업동향",
         "item_target_label": "투자유치 필요 품목·기술",
@@ -321,34 +322,34 @@ TEXTS = {
         "item_note": "5대 시그널에는 미포착되었으나, {month}중 투자유치 필요 품목·기술과 직접 연계되는 글로벌 사업동향이 포착된 기업. 향후 시그널 발전 가능성을 모니터링함.",
     },
     "en": {
-        "footer": "Invest KOREA · Global Investment Signal Monitoring · {issue}",
+        "footer": "Invest KOREA · Target-Company Global Investment Signal Monitor · {issue}",
         "cover_title_1": "Target Companies",
         "cover_title_2": "Global Investment Signals",
-        "cover_title_3": "Monitoring",
-        "cover_line_1": "30 priority investment projects selected by MOTIE · 77 target companies",
-        "cover_line_2": "Five leading signals per company · Investment plans and enabling activities",
-        "cover_indicator_heading": "Five investment trend indicators",
-        "matrix_title": "Signal Matrix of the Month",
-        "matrix_desc": "Global investment signals (leading indicators) across 77 target companies for {period}. A filled cell marks a signal captured during the month; final investment commitments are excluded; financing and R&D precursors are included.",
+        "cover_title_3": "Monitor",
+        "cover_line_1": "30 Major Investment-Attraction Projects (MOTIE) · 77 Target Companies",
+        "cover_line_2": "Five investment signals per company · Pre-confirmation indicators only",
+        "cover_indicator_heading": "FIVE LEADING SIGNAL INDICATORS",
+        "matrix_title": "This Month's Signal Matrix",
+        "matrix_desc": "Investment signals (pre-confirmation) across the 77 target companies for {period}. A highlighted cell marks a signal detected during the month; lagging data such as completed deals are excluded.",
         "matrix_company": "Company",
-        "matrix_legend_on": "Signal captured",
-        "matrix_legend_off": "Not detected",
-        "matrix_indicators": "① Supply chain & geopolitical risk · ② Production expansion · ③ Investment financing · ④ Technology ecosystem · ⑤ Key personnel movement",
-        "matrix_footnote": "{on} detected · {reviewed_off} not detected in reviewed sources · {insufficient} insufficient coverage",
-        "detail_title": "Company Signal Detail",
-        "no_signal": "No signal detected this month",
-        "business_heading": "GLOBAL BUSINESS",
+        "matrix_legend_on": "Signal detected",
+        "matrix_legend_off": "No signal",
+        "matrix_indicators": "① Supply Chain & Geopolitical Risk · ② Production Expansion · ③ Capital Securing · ④ Tech Ecosystem (R&D) · ⑤ Strategic Executive Move",
+        "matrix_footnote": "{on} of {total} companies show a signal this month | details on the following pages",
+        "detail_title": "Company Signal Details",
+        "no_signal": "No signal this month",
+        "business_heading": "GLOBAL BUSINESS STATUS",
         "business_empty": "No global business activity could be summarised from official sources for this period.",
         "target_item": "Target item",
-        "target_tech": "Target technology",
+        "target_tech": "Target tech",
         "source_prefix": "Source",
         "source_fallback": "Collected source",
-        "source_empty": "Source  -",
+        "source_empty": "Source  —",
         "source_press_release": "Official press release",
-        "item_title": "Global Business Trends by Item",
-        "item_target_label": "Target item / technology",
-        "item_trend_label": "Global business trend, {month}",
-        "item_note": "Companies with no signal among the five indicators this month, but with global business activity in {month} directly tied to their target item or technology. Monitored for potential escalation into a signal.",
+        "item_title": "Item-Linked Global Business Trends",
+        "item_target_label": "Target item/tech",
+        "item_trend_label": "{month} global business trend",
+        "item_note": "Companies without a five-signal profile this month, but where a global business trend directly linked to a target item/tech was detected in {month} — monitored for potential signal development.",
     },
 }
 
@@ -409,9 +410,13 @@ def issue_month(summary):
     if to_date:
         year = to_date.year + (1 if to_date.month == 12 else 0)
         month = 1 if to_date.month == 12 else to_date.month + 1
-        return f"{year}.{month:02d}"
-    dt = parse_datetime(summary.get("run_started_at")) or datetime.now(timezone.utc)
-    return dt.astimezone(timezone(timedelta(hours=9))).strftime("%Y.%m")
+    else:
+        dt = parse_datetime(summary.get("run_started_at")) or datetime.now(timezone.utc)
+        dt = dt.astimezone(timezone(timedelta(hours=9)))
+        year, month = dt.year, dt.month
+    if LANG == "en":
+        return f"{MONTH_NAMES_EN[month - 1]} {year}"
+    return f"{year}.{month:02d}"
 
 
 def report_period(summary):
@@ -727,7 +732,7 @@ def summary_plain_text(row):
     if not parts:
         return ""
     if parts["detail"]:
-        return f"{parts['headline']} - {parts['detail']}"
+        return f"{parts['headline']} — {parts['detail']}"
     return parts["headline"]
 
 
@@ -761,12 +766,32 @@ def wrap_text(canvas_obj, text, max_width, font_name, font_size):
     return lines
 
 
-def short_text_to_width(canvas_obj, text, max_width, font_name, font_size):
+# 고정폭 슬롯에서 잘려나간 문구. slot 이름을 준 호출만 모은다.
+# 줄바꿈 꼬리를 다듬는 호출은 정상 동작이라 대상이 아니다.
+CLIPPED = []
+
+
+def clipping_report():
+    """잘린 문구를 stderr로 알린다. 슬롯 폭은 서로 연동돼 있어 문구 하나만
+    고쳐도 옆 슬롯이 좁아지므로, 조용히 넘어가면 잘린 PDF가 그대로 배포된다."""
+    if not CLIPPED:
+        return
+    print(f"WARNING: {len(CLIPPED)} text run(s) were clipped to fit", file=sys.stderr)
+    for item in CLIPPED:
+        print(
+            f"  {item['slot']} ({item['font_size']}pt, {item['max_width']:.1f}pt slot): {item['text']!r}",
+            file=sys.stderr,
+        )
+
+
+def short_text_to_width(canvas_obj, text, max_width, font_name, font_size, slot=None):
     text = " ".join(str(text or "").replace("&nbsp;", " ").split())
     if not text:
         return ""
     if canvas_obj.stringWidth(text, font_name, font_size) <= max_width:
         return text
+    if slot:
+        CLIPPED.append({"slot": slot, "font_size": font_size, "max_width": max_width, "text": text})
     suffix = "..."
     if canvas_obj.stringWidth(suffix, font_name, font_size) > max_width:
         return ""
@@ -1041,9 +1066,9 @@ def draw_cover(report, summary, indicators):
         report.text(43, y, title, title_size, GOLD if index == 1 else WHITE, weight="semibold")
 
     y -= 42
-    report.text(43, y, short_text_to_width(c, t("cover_line_1"), text_width, report.fonts["demilight"], 12), 12, WHITE)
+    report.text(43, y, short_text_to_width(c, t("cover_line_1"), text_width, report.fonts["demilight"], 12, "cover_line_1"), 12, WHITE)
     y -= 20
-    report.text(43, y, short_text_to_width(c, t("cover_line_2"), text_width, report.fonts["demilight"], 12), 12, WHITE)
+    report.text(43, y, short_text_to_width(c, t("cover_line_2"), text_width, report.fonts["demilight"], 12, "cover_line_2"), 12, WHITE)
 
     y -= 45
     report.text(43, y, t("cover_indicator_heading"), 9, colors.HexColor("#C8D2DF"))
@@ -1061,12 +1086,12 @@ def draw_cover(report, summary, indicators):
             description = item["description_ko"]
         # 라벨을 먼저 폭 안에 맞추고, 설명은 남은 자리만큼만 쓴다.
         # 예전에는 남은 폭에 하한 60pt를 걸어서, 라벨이 길면 설명이 라벨 위로 겹쳐 찍혔다.
-        label = short_text_to_width(c, label, PAGE_W - 43 - 67, report.fonts["semibold"], 12)
+        label = short_text_to_width(c, label, PAGE_W - 43 - 67, report.fonts["semibold"], 12, f"cover_indicator_label[{item['no']}]")
         report.text(67, y - 1, label, 12, WHITE, weight="semibold")
         label_w = c.stringWidth(label, report.fonts["semibold"], 12)
         description_width = PAGE_W - 43 - (67 + label_w + 16)
         if description_width >= 50:
-            description = short_text_to_width(c, description, description_width, report.fonts["demilight"], 8)
+            description = short_text_to_width(c, description, description_width, report.fonts["demilight"], 8, f"cover_indicator_desc[{item['no']}]")
             report.text(PAGE_W - 43, y - 1, description, 8, colors.HexColor("#C8D2DF"), align="right")
         y -= 32
 
@@ -1275,7 +1300,7 @@ def draw_matrix(report, profiles, signal_index, summary, signal_rows):
     report.text(
         32,
         y - 6,
-        short_text_to_width(c, t("matrix_indicators"), PAGE_W - 64, report.fonts["demilight"], 7),
+        short_text_to_width(c, t("matrix_indicators"), PAGE_W - 64, report.fonts["demilight"], 7, "matrix_indicators"),
         7,
         MUTED,
     )
@@ -1296,13 +1321,15 @@ def draw_matrix(report, profiles, signal_index, summary, signal_rows):
     footnote = t(
         "matrix_footnote",
         on=len(signal_companies),
+        off=reviewed_off + insufficient,
+        total=len(profiles),
         reviewed_off=reviewed_off,
         insufficient=insufficient,
     )
     report.text(
         32,
         y - 24,
-        short_text_to_width(c, footnote, PAGE_W - 64, report.fonts["extrabold"], 8),
+        short_text_to_width(c, footnote, PAGE_W - 64, report.fonts["extrabold"], 8, "matrix_footnote"),
         8,
         colors.HexColor("#4B5870"),
         weight="extrabold",
@@ -1368,7 +1395,7 @@ def draw_summary_text(report, row, x, y, width, size=9.2, max_lines=2, line_gap=
     detail = parts["detail"]
     headline_font = report.fonts["semibold"]
     detail_font = report.fonts["demilight"]
-    dash = " - " if detail else ""
+    dash = " — " if detail else ""
     headline_width = report.canvas.stringWidth(headline, headline_font, size)
     dash_width = report.canvas.stringWidth(dash, detail_font, size)
     detail_width = report.canvas.stringWidth(detail, detail_font, size)
@@ -1388,9 +1415,9 @@ def draw_summary_text(report, row, x, y, width, size=9.2, max_lines=2, line_gap=
 
     report.wrapped(headline, x, y, width, size, TEXT, max_lines=1, line_gap=line_gap, weight="semibold")
     detail_lines = wrap_text(report.canvas, detail, width, detail_font, size)
-    detail_text_value = f"- {detail}"
+    detail_text_value = f"— {detail}"
     if len(detail_lines) > max_lines - 1:
-        detail_text_value = f"- {' '.join(detail_lines[: max_lines - 1])}"
+        detail_text_value = f"— {' '.join(detail_lines[: max_lines - 1])}"
     report.wrapped(detail_text_value, x, y - line_height, width, size, colors.black, max_lines=max_lines - 1, line_gap=line_gap, weight="demilight")
     return min(max_lines, 1 + len(detail_lines))
 
@@ -1423,7 +1450,7 @@ def draw_industry_pill(report, x, y, max_width, text, color):
     예전에는 알약 폭만 132pt로 자르고 글자는 원문 그대로 찍어서, 영문 산업명처럼
     긴 라벨이 알약 밖으로 튀어나오고 뒤따르는 국가명과 겹쳤다.
     """
-    text = short_text_to_width(report.canvas, text, max_width - 18, report.fonts["semibold"], 9)
+    text = short_text_to_width(report.canvas, text, max_width - 18, report.fonts["semibold"], 9, "industry_pill")
     if not text:
         return 0
     pill_width = report.canvas.stringWidth(text, report.fonts["semibold"], 9) + 18
@@ -1608,7 +1635,7 @@ def draw_signal_row(report, no, rows, x, y, width, max_lines=2, draw_separator=T
     label_x = x + 31
     label = SIGNAL_DESCRIPTIONS_EN[no] if LANG == "en" else SIGNAL_DESCRIPTIONS[no]
     # 알약은 폭 상한이 있으므로 글자를 먼저 그 안에 맞춘다. 예전에는 알약만 잘리고 글자는 그대로 나가서 밖으로 튀어나왔다.
-    label = short_text_to_width(report.canvas, label, width - 190 - 16, report.fonts["semibold"], 7.6)
+    label = short_text_to_width(report.canvas, label, width - 190 - 16, report.fonts["semibold"], 7.6, f"signal_label[{no}]")
     label_w = report.canvas.stringWidth(label, report.fonts["semibold"], 7.6) + 14
     c.setFillColor(LIGHT)
     c.roundRect(label_x, y - 9, label_w, 16, 3, fill=1, stroke=0)
@@ -1617,10 +1644,10 @@ def draw_signal_row(report, no, rows, x, y, width, max_lines=2, draw_separator=T
     if not active:
         empty_x = label_x + label_w + 18
         empty_text = short_text_to_width(
-            report.canvas, t("no_signal"), x + width - 22 - empty_x, report.fonts["demilight"], 10
+            report.canvas, t("no_signal"), x + width - 22 - empty_x, report.fonts["demilight"], 10, f"no_signal[{no}]"
         )
         report.text(empty_x, y - 4, empty_text, 10, colors.HexColor("#B5B9BF"))
-        report.text(x + width - 12, y - 4, "-", 10, colors.HexColor("#B5B9BF"), align="right")
+        report.text(x + width - 12, y - 4, "—", 10, colors.HexColor("#B5B9BF"), align="right")
         if draw_separator:
             c.setStrokeColor(BOX_LINE)
             separator_y = y - SIGNAL_EMPTY_CONTENT_BOTTOM_OFFSET - SIGNAL_CONTENT_TO_SEPARATOR
@@ -1640,7 +1667,7 @@ def draw_signal_row(report, no, rows, x, y, width, max_lines=2, draw_separator=T
         line_gap=SIGNAL_BODY_GAP,
     )
     source_y = body_y - ((SIGNAL_BODY_SIZE + SIGNAL_BODY_GAP) * line_count) - SIGNAL_SOURCE_GAP
-    source_text = short_text_to_width(report.canvas, source_line(row), width - 64, report.fonts["demilight"], SIGNAL_SOURCE_SIZE)
+    source_text = short_text_to_width(report.canvas, source_line(row), width - 64, report.fonts["demilight"], SIGNAL_SOURCE_SIZE, "signal_source")
     report.text(label_x, source_y, source_text, SIGNAL_SOURCE_SIZE, MUTED)
     if draw_separator:
         separator_y = source_y - SIGNAL_SOURCE_BOTTOM_OFFSET - SIGNAL_CONTENT_TO_SEPARATOR
@@ -1727,7 +1754,7 @@ def draw_detail_page(report, profile, signal_index, relevant_rows, investment_ro
         )
         if target_layout["wrapped"]:
             # 라벨 옆에 안 들어가는 타겟품목은 잘라내지 않고 박스 폭 전체를 쓰는 아랫줄에 싣는다.
-            wrapped_text = short_text_to_width(c, target_layout["text"], width - 32, report.fonts["semibold"], 9.5)
+            wrapped_text = short_text_to_width(c, target_layout["text"], width - 32, report.fonts["semibold"], 9.5, "detail_target_tech")
             report.text(
                 x + 16, header_y - TARGET_WRAP_HEIGHT, wrapped_text, 9.5, colors.HexColor("#087A70"), weight="semibold"
             )
@@ -1745,7 +1772,7 @@ def draw_detail_page(report, profile, signal_index, relevant_rows, investment_ro
     source_y = max(bottom_y + BUSINESS_SOURCE_BOTTOM_PAD, body_y - BUSINESS_SOURCE_GAP)
     source_width = width - 32
     if business_row:
-        source_text = short_text_to_width(report.canvas, source_line(business_row), source_width, report.fonts["demilight"], 8)
+        source_text = short_text_to_width(report.canvas, source_line(business_row), source_width, report.fonts["demilight"], 8, "business_source")
         report.text(x + 16, source_y, source_text, 8, MUTED)
     else:
         report.text(x + 16, source_y, t("source_empty"), 8, MUTED)
@@ -1863,7 +1890,8 @@ def draw_item_card(report, entry, layout, x, top, width, month_label):
     target_pill_w = draw_label_pill(report, x + 17, target_y, t("item_target_label"))
     target_x = x + 17 + target_pill_w + 10
     target_text = short_text_to_width(
-        c, str(profile.get("target_technology") or ""), x + width - 17 - target_x, report.fonts["semibold"], 9.5
+        c, str(profile.get("target_technology") or ""), x + width - 17 - target_x, report.fonts["semibold"], 9.5,
+        "item_target_tech",
     )
     report.text(target_x, target_y, target_text, 9.5, TEXT, weight="semibold")
 
@@ -1881,7 +1909,7 @@ def draw_item_card(report, entry, layout, x, top, width, month_label):
         line_gap=ITEM_BODY_GAP,
         weight="demilight",
     )
-    source_text = short_text_to_width(c, source_line(row), layout["body_width"], report.fonts["demilight"], ITEM_SOURCE_SIZE)
+    source_text = short_text_to_width(c, source_line(row), layout["body_width"], report.fonts["demilight"], ITEM_SOURCE_SIZE, "item_source")
     report.text(x + 17, top - layout["source_offset"], source_text, ITEM_SOURCE_SIZE, MUTED)
 
 
@@ -1914,7 +1942,7 @@ def draw_item_trends(report, profiles, signal_index, relevant_rows, summary):
     note = t("item_note", month=month_label)
     for index, page in enumerate(pages, start=1):
         report.new_page()
-        report.header("I T E M   T R E N D S", t("item_title"), f"{index}/{len(pages)}")
+        report.header("T A R G E T - I T E M   S I G N A L S", t("item_title"), f"{index}/{len(pages)}")
         if index == 1:
             report.wrapped(note, 28, PAGE_H - 128, PAGE_W - 56, 8, colors.HexColor("#555F6E"), max_lines=2, line_gap=4, align="justify")
         for placed in page:
@@ -1962,11 +1990,13 @@ def build_report(args):
     item_trends = draw_item_trends(report, profiles, signal_index, relevant, summary)
 
     report.finish()
+    clipping_report()
     print(
         json.dumps(
             {
                 "output": str(out_path),
                 "lang": LANG,
+                "clipped_text_count": len(CLIPPED),
                 "pages": report.page_no,
                 "company_count": len(profiles),
                 "detail_company_count": total_details,

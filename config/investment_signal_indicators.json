@@ -7,7 +7,7 @@
       "id": "supply_chain_geopolitical_risk",
       "no": 1,
       "label_ko": "공급망·지정학 리스크 대응",
-      "label_en": "Supply chain & geopolitical risk",
+      "label_en": "Supply Chain & Geopolitical Risk",
       "description_ko": "특정지역 의존도 축소·공급망 다변화·규제 리스크 대응 등",
       "keywords": [
         "공급망", "공급망 다변화", "공급망 재편", "공급망 안정화", "탈중국", "중국 의존도", "특정지역 의존도", "지역 의존도", "리쇼어링", "니어쇼어링", "프렌드쇼어링", "규제 리스크", "수출통제", "관세", "제재", "지정학", "지정학 리스크",
@@ -18,7 +18,7 @@
       "id": "production_expansion_diversification",
       "no": 2,
       "label_ko": "생산 확대 및 다변화 의지",
-      "label_en": "Production expansion & diversification",
+      "label_en": "Production Expansion & Diversification",
       "description_ko": "APAC 신규 시설 확장 검토·생산기지 타당성 조사 등",
       "keywords": [
         "생산 확대", "생산 확장", "생산능력", "생산능력 확대", "생산기지", "신규 시설", "신규 공장", "공장 신설", "공장 증설", "설비 증설", "제조시설", "제조 거점", "타당성 조사", "입지 검토", "아시아태평양", "APAC",
@@ -29,7 +29,7 @@
       "id": "investment_financing",
       "no": 3,
       "label_ko": "투자 재원 확보",
-      "label_en": "Investment financing secured",
+      "label_en": "Capital Securing & Financing",
       "description_ko": "대규모 회사채 발행·유상증자·신용공여 조달 등",
       "keywords": [
         "투자 재원", "회사채", "채권 발행", "유상증자", "신용공여", "신용 한도", "대출 약정", "차입", "자금 조달", "자본 조달", "전환사채", "사모", "공모", "시설투자 자금",
@@ -40,7 +40,7 @@
       "id": "technology_ecosystem_rd",
       "no": 4,
       "label_ko": "기술 생태계 밀착(R&D)",
-      "label_en": "Technology ecosystem & R&D",
+      "label_en": "Tech Ecosystem Engagement (R&D)",
       "description_ko": "공동연구·기술 라이선싱·PoC 매칭·지분투자 등",
       "keywords": [
         "공동연구", "공동 개발", "기술협력", "연구개발", "기술 라이선싱", "라이선스 계약", "PoC", "개념검증", "파일럿", "실증", "전략적 제휴", "전략적 파트너십", "기술 투자", "지분투자", "오픈이노베이션", "산학협력", "연구센터", "R&D",
@@ -51,7 +51,7 @@
       "id": "strategic_people_movement",
       "no": 5,
       "label_ko": "핵심 전략 인력의 이동",
-      "label_en": "Movement of key personnel",
+      "label_en": "Strategic Executive Move",
       "description_ko": "C-Level 이동·극비 방한 및 실사 조율 등",
       "keywords": [
         "C-Level 이동", "C레벨 이동", "경영진 교체", "임원 이동", "임원 선임", "신임 대표", "신임 사장", "사장 선임", "이사회 선임", "방한", "한국 방문", "현장 실사", "실사 조율", "대표단 방한", "고위급 방문",
