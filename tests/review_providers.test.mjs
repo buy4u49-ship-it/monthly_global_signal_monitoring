@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { NVIDIA, GEMINI, resolveProvider, toJsonSchema, decisionProperties } from '../scripts/review_providers.mjs';
+import * as provider_module from '../scripts/review_providers.mjs';
+const { NVIDIA, GEMINI, resolveProvider, toJsonSchema, decisionProperties } = provider_module;
 import { configuration, requestReview } from '../scripts/gemini_report.mjs';
 import { groupArticles } from '../scripts/local_report.mjs';
 
@@ -90,4 +91,19 @@ test('the provider is chosen by env and the model stays overridable', () => {
 test('the two providers never share a cached judgement', () => {
   assert.notEqual(GEMINI.model, NVIDIA.model);
   assert.notEqual(GEMINI.id, NVIDIA.id);
+});
+
+test('an auth failure can be diagnosed without printing the key', () => {
+  const { describeKeyShape } = provider_module;
+  // 다른 서비스 키가 들어 있는 경우와 붙여넣기 공백을 구분할 수 있어야 한다.
+  assert.deepEqual(describeKeyShape('nvapi-0123456789'), { length: 16, prefix: 'nvapi-', issuer: 'NVIDIA build', had_surrounding_whitespace: false });
+  assert.equal(describeKeyShape('sk-legacygatewaykey').prefix, 'sk-');
+  assert.equal(describeKeyShape(' nvapi-0123456789\n').had_surrounding_whitespace, true);
+  assert.equal(describeKeyShape(undefined).prefix, '(알 수 없는 형식)');
+  // 어떤 경우에도 키 본문은 결과에 담기지 않는다.
+  assert.equal(JSON.stringify(describeKeyShape('nvapi-supersecret')).includes('supersecret'), false);
+});
+
+test('a pasted key with surrounding whitespace still authenticates', () => {
+  assert.equal(configuration({ REPORT_PROVIDER: 'nvidia', OPENAI_API_KEY: '  nvapi-abc\n' }, NVIDIA).apiKey, 'nvapi-abc');
 });

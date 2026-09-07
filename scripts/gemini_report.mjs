@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { sourceCandidates, groupArticles, importReview, normalizeQuote, build } from './local_report.mjs';
-import { resolveProvider } from './review_providers.mjs';
+import { resolveProvider, describeKeyShape } from './review_providers.mjs';
 
 // 어느 API로 보낼지는 REPORT_PROVIDER 가 정한다. 기본값은 Gemini 무료 티어 Flash-Lite다.
 // Gemini 가 503/404 로 멈추면 GEMINI_MODEL=gemini-3.1-flash-lite 로 내려간다.
@@ -38,7 +38,7 @@ export function configuration(env = process.env, provider = resolveProvider(env)
   if (!Number.isFinite(delayMs) || delayMs < provider.minDelayMs || delayMs > 60000) {
     throw new Error(`${prefix}_DELAY_MS must be ${provider.minDelayMs}..60000`);
   }
-  return { apiKey: env[keyEnv], maxRequests, delayMs };
+  return { apiKey: String(env[keyEnv]).trim(), maxRequests, delayMs };
 }
 
 function invalidResponse(code, label = PROVIDER.label) {
@@ -276,6 +276,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     http_status: error.status || null, provider: PROVIDER.id, model: MODEL,
     period: { from_date: process.env.REPORT_FROM_DATE || null, to_date: process.env.REPORT_TO_DATE || null },
   }).catch(() => {});
+  if (error.status === 401 || error.status === 403) {
+    const apiKey = PROVIDER.keyEnv.map(name => process.env[name]).find(Boolean);
+    const shape = describeKeyShape(apiKey);
+    console.error(`${PROVIDER.keyEnv[0]} 이 ${PROVIDER.label} 에서 거절됐다. 키는 찍지 않고 모양만 보고한다:`);
+    console.error(`  길이 ${shape.length}, 접두사 ${shape.prefix} (${shape.issuer}), 앞뒤 공백 ${shape.had_surrounding_whitespace ? '있음' : '없음'}`);
+    if (PROVIDER.expectedKeyPrefix && !String(apiKey).trim().startsWith(PROVIDER.expectedKeyPrefix)) {
+      console.error(`  ${PROVIDER.label} 키는 보통 ${PROVIDER.expectedKeyPrefix} 로 시작한다. 이 시크릿에 다른 서비스 키가 들어 있는지 확인할 것.`);
+    }
+  }
   if (error.status === 404) {
     // Metadata-only request: report available model IDs, never select a paid fallback.
     try {

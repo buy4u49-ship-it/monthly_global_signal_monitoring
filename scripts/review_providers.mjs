@@ -118,6 +118,7 @@ export const NVIDIA = {
   minDelayMs: 1500,
   defaultDelayMs: 1600,
   requiresFreeTierConfirmation: false,
+  expectedKeyPrefix: 'nvapi-',
   url() {
     return 'https://integrate.api.nvidia.com/v1/chat/completions';
   },
@@ -162,6 +163,29 @@ export const NVIDIA = {
     return (payload.data || []).map(m => m.id);
   },
 };
+
+// 인증 실패를 진단할 때 키 자체는 절대 찍지 않는다. 길이·접두사·공백 여부면
+// "다른 서비스 키가 들어 있다" 와 "붙여넣기에 개행이 섞였다" 를 구분할 수 있다.
+const KEY_PREFIXES = [
+  ['nvapi-', 'NVIDIA build'],
+  ['sk-proj-', 'OpenAI project'],
+  ['sk-or-', 'OpenRouter'],
+  ['sk-', 'OpenAI 또는 호환 게이트웨이'],
+  ['gsk_', 'Groq'],
+  ['AIza', 'Google'],
+];
+
+export function describeKeyShape(rawKey) {
+  const raw = String(rawKey ?? '');
+  const key = raw.trim();
+  const match = KEY_PREFIXES.find(([prefix]) => key.startsWith(prefix));
+  return {
+    length: key.length,
+    prefix: match ? match[0] : '(알 수 없는 형식)',
+    issuer: match ? match[1] : '(알 수 없음)',
+    had_surrounding_whitespace: raw !== key,
+  };
+}
 
 export const PROVIDERS = { gemini: GEMINI, nvidia: NVIDIA };
 
