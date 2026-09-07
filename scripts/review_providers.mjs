@@ -110,8 +110,9 @@ export const NVIDIA = {
   id: 'nvidia',
   label: 'NVIDIA',
   model: 'deepseek-ai/deepseek-v4-flash-0731',
-  // 키는 저장소 시크릿에 OpenAI 이름으로 들어 있다.
-  keyEnv: ['NVIDIA_API_KEY', 'OPENAI_API_KEY'],
+  // OPENAI_API_KEY 로 폴백하지 않는다. 그 시크릿은 OpenAI 요약기용 학교 게이트웨이 키이고,
+  // 다른 서비스에 발급된 자격증명을 조용히 NVIDIA 로 보내면 안 된다.
+  keyEnv: ['NVIDIA_API_KEY'],
   // 40 RPM 이면 1500ms 다. 1600ms 를 기본값으로 두어 여유를 둔다.
   minDelayMs: 1500,
   defaultDelayMs: 1600,

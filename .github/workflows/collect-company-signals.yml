@@ -103,9 +103,8 @@ jobs:
           REPORT_PROVIDER: ${{ inputs.provider || vars.REPORT_PROVIDER || 'gemini' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED }}
-          # NVIDIA build 무료 키는 저장소에 OpenAI 이름으로 들어 있다.
+          # OPENAI_API_KEY 는 OpenAI 요약기 전용이라 이 스텝에 넘기지 않는다.
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           REPORT_MAX_REQUESTS: ${{ inputs.gemini_max_requests || vars.GEMINI_MAX_REQUESTS || '400' }}
           REPORT_DELAY_MS: ${{ inputs.gemini_delay_ms || vars.GEMINI_DELAY_MS || '' }}
           REPORT_FROM_DATE: ${{ steps.report_period.outputs.from_date }}

@@ -70,14 +70,14 @@ test('an NVIDIA HTTP failure is labelled without leaking the response body', asy
   );
 });
 
-test('NVIDIA needs no free-tier confirmation and accepts the OpenAI-named secret', () => {
+test('NVIDIA needs no free-tier confirmation and never borrows the OpenAI secret', () => {
   assert.deepEqual(
-    configuration({ REPORT_PROVIDER: 'nvidia', OPENAI_API_KEY: 'k' }, NVIDIA),
+    configuration({ REPORT_PROVIDER: 'nvidia', NVIDIA_API_KEY: 'k' }, NVIDIA),
     { apiKey: 'k', maxRequests: 400, delayMs: 1600 },
   );
   // 40 RPM 이면 1500ms 가 한도다.
-  assert.throws(() => configuration({ REPORT_PROVIDER: 'nvidia', OPENAI_API_KEY: 'k', NVIDIA_DELAY_MS: '1499' }, NVIDIA), /1500\.\.60000/);
-  assert.throws(() => configuration({ REPORT_PROVIDER: 'nvidia' }, NVIDIA), /NVIDIA_API_KEY or OPENAI_API_KEY/);
+  assert.throws(() => configuration({ REPORT_PROVIDER: 'nvidia', NVIDIA_API_KEY: 'k', NVIDIA_DELAY_MS: '1499' }, NVIDIA), /1500\.\.60000/);
+  assert.throws(() => configuration({ REPORT_PROVIDER: 'nvidia', OPENAI_API_KEY: 'other-service' }, NVIDIA), /NVIDIA_API_KEY is required/);
 });
 
 test('the provider is chosen by env and the model stays overridable', () => {
