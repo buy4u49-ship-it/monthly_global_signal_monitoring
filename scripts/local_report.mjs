@@ -11,6 +11,16 @@ import { validateRows, investmentStageSupported } from "./validate_report_inputs
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const POLICY_VERSION = "local-report-v2";
 const clean = (value) => String(value || "").replace(/\s+/g, " ").trim();
+// Compare typographic equivalents only; preserve words, numbers and block boundaries.
+export function normalizeQuote(value) {
+  const entities = { amp: '&', quot: '"', apos: "'", nbsp: ' ', lsquo: "'", rsquo: "'", ldquo: '"', rdquo: '"', ndash: '-', mdash: '-' };
+  return clean(String(value || '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity) => {
+    if (!entity.startsWith('#')) return Object.hasOwn(entities, entity) ? entities[entity] : match;
+    const code = /^#x/i.test(entity) ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+    return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : match;
+  }).normalize('NFC').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-')
+    .replace(/[₀-₉]/g, digit => String(digit.charCodeAt(0) - 0x2080)));
+}
 const hash = (value) => crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 24);
 const read = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
 const write = async (file, value) => fs.writeFile(file, `${JSON.stringify(value, null, 2)}\n`);
@@ -110,7 +120,7 @@ export function importReview(article, review) {
     throw new Error(`${article.company}: review must cover every candidate exactly once`);
   }
   const seen = new Set();
-  const evidence = article.evidence.map(clean);
+  const evidence = article.evidence.map(normalizeQuote);
   return review.decisions.map((decision) => {
     const candidate = article.candidates.find((item) => item.id === decision.candidate_id);
     if (!candidate || seen.has(decision.candidate_id)) throw new Error(`${article.company}: unknown or duplicate candidate_id`);
@@ -130,7 +140,7 @@ export function importReview(article, review) {
       decision.indicator_supported && decision.leading_indicator_supported && decision.quality === "pass" &&
       (candidate.kind === "relevant" || investmentStageSupported(decision.event_stage, candidate.row.investment_signal_no));
     const quotes = decision.evidence_quotes;
-    if (!Array.isArray(quotes) || quotes.some((quote) => !clean(quote) || !evidence.some((text) => text.includes(clean(quote))))) {
+    if (!Array.isArray(quotes) || quotes.some((quote) => typeof quote !== 'string' || !normalizeQuote(quote) || !evidence.some((text) => text.includes(normalizeQuote(quote))))) {
       throw new Error(`${context}: evidence_quotes must be exact passages from this article`);
     }
     if (supported && !quotes.length) throw new Error(`${context}: approved candidate needs an evidence quote`);
