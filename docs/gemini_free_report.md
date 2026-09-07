@@ -6,7 +6,8 @@
 
 - GitHub Actions Secret: `GEMINI_API_KEY` (등록 확인 완료).
 - Google AI Studio에서 키가 속한 프로젝트가 **결제를 연결하지 않은 Free Tier**인지 확인한다. 그 다음 GitHub Actions **Variable** `GEMINI_FREE_TIER_CONFIRMED`를 `true`로 설정한다. 이 값이 없으면 크롤링·API 호출 전에 종료한다.
-- 모델은 `gemini-3.1-flash-lite`로 고정했다. 2026-09-07 Google 공식 가격표의 Standard Free Tier 대상이다. 무료 모델이라도 유료 프로젝트 키로 호출하면 과금될 수 있다. 코드나 API 키 이름으로 결제 상태를 판별할 수 없다. 결제를 연결할 경우 확인 변수를 해제하고 재검토해야 한다.
+- 기본 모델은 `gemini-3.1-flash-lite`다. 2026-09-07 Google 공식 가격표의 Standard Free Tier 대상이며 실제 생성 요청으로 검증했다. Actions Variable `GEMINI_MODEL`로 다른 모델을 지정할 수 있고, Flash·Flash-Lite 계열 ID만 허용한다(오타로 종량 모델을 호출하지 못하게). 값을 비우면 기본값으로 돌아간다. 2026-09-07 가격표 기준 `gemini-3.5-flash-lite`, `gemini-3.5-flash`도 Free Tier "Free of charge"로 표시되나, 생성 요청의 실제 응답·용량은 실행으로 확인해야 한다(어제 `gemini-3.8-flash`·`gemini-3.7-flash`는 503, `gemini-2.5-flash`는 404였다).
+- 무료 모델이라도 유료 프로젝트 키로 호출하면 과금될 수 있다. 코드나 API 키 이름, 모델 이름으로 결제 상태를 판별할 수 없다. 결제를 연결할 경우 확인 변수를 해제하고 재검토해야 한다.
 - 무료 서비스에는 입력의 제품 개선 사용 조건이 있다. 공개 기사와 분석에 필요한 기업·기술·지표 기준을 전송한다. 비공개 내부 전략 자료는 입력하지 않는다.
 
 공식 근거: [가격표](https://ai.google.dev/gemini-api/docs/pricing), [할당량](https://ai.google.dev/gemini-api/docs/rate-limits), [구조화 응답](https://ai.google.dev/gemini-api/docs/structured-output).
@@ -15,7 +16,7 @@
 
 1. GitHub Actions에서 `collect-company-signals`를 실행한다. 이번 변경을 시험할 때는 `feat/local-monthly-report` 브랜치를 선택한다. 날짜를 비우면 직전 달을 사용한다.
 2. 기본적으로 저장된 같은 기간 원문을 재사용한다. 처음에는 크롤링한다. `refresh=true`는 원문을 새로 수집한다. 이어가기에는 `false`를 유지한다.
-3. 한 번 실행할 때 새 API 요청은 기본 최대 40건, 요청 사이 대기는 15초다. Actions Variables `GEMINI_MAX_REQUESTS`(1~200), `GEMINI_DELAY_MS`(15000~60000)로 조절할 수 있다. 실제 할당량을 보장하는 수치는 아니다.
+3. 한 번 실행할 때 새 API 요청은 기본 최대 40건, 요청 사이 대기는 15초다. Actions Variables `GEMINI_MAX_REQUESTS`(1~200), `GEMINI_DELAY_MS`(15000~60000)로 조절할 수 있다. 실제 할당량을 보장하는 수치는 아니다. 새 모델을 시험할 때는 `GEMINI_MODEL`을 설정하고 `GEMINI_MAX_REQUESTS`를 2~3으로 낮춰 용량·응답을 먼저 확인한 뒤 40으로 되돌린다. 모델을 바꾸면 캐시 식별자가 바뀌어 앞선 판정은 재사용되지 않는다.
 4. 429(한도 초과), 서버 오류, 실행당 요청 상한에서는 저장 후 멈춘다. GitHub 실행은 실패로 표시되며 실행 요약과 artifact의 `status.json`에 `paused`와 진행 건수가 남는다. **할당량 회복 후 같은 날짜로 다시 실행**하면 남은 기사부터 진행한다. 자동 예약 재실행은 아직 연결하지 않았다.
 5. 모든 기사의 응답이 검증된 후 한·영 PDF와 대시보드 JSON을 함께 커밋한다. 성공한 실행의 `monthly-report-pdfs-*` artifact에서도 PDF를 다운로드할 수 있다. 대기·오류 중에는 기존 발행물을 교체하지 않는다.
 

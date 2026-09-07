@@ -6,7 +6,19 @@ import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { sourceCandidates, groupArticles, importReview, build } from './local_report.mjs';
 
-export const MODEL = 'gemini-3.1-flash-lite';
+// Free-tier default, validated against live generateContent on 2026-09-07. Override with
+// GEMINI_MODEL to try another model without a commit; only Flash / Flash-Lite IDs are
+// accepted so a typo cannot silently reach a metered model. The free-tier project, not
+// this name, is what prevents billing.
+export function resolveModel(env = process.env) {
+  const requested = (env.GEMINI_MODEL || '').trim();
+  if (!requested) return 'gemini-3.1-flash-lite';
+  if (!/^gemini-[0-9.]+-flash(-lite)?$/.test(requested)) {
+    throw new Error(`GEMINI_MODEL must be a Gemini Flash or Flash-Lite id (got "${requested}")`);
+  }
+  return requested;
+}
+export const MODEL = resolveModel();
 const VERSION = 'gemini-article-v1';
 const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 24);
 const read = async file => JSON.parse(await fs.readFile(file, 'utf8'));

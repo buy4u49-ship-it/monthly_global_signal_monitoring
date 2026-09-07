@@ -89,6 +89,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || '' }}
           GEMINI_MAX_REQUESTS: ${{ vars.GEMINI_MAX_REQUESTS || '40' }}
           GEMINI_DELAY_MS: ${{ vars.GEMINI_DELAY_MS || '15000' }}
           REPORT_FROM_DATE: ${{ steps.report_period.outputs.from_date }}
