@@ -26,8 +26,10 @@ export function configuration(env = process.env) {
   if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required');
   const maxRequests = Number(env.GEMINI_MAX_REQUESTS || 40);
   const delayMs = Number(env.GEMINI_DELAY_MS || 15000);
-  if (!Number.isInteger(maxRequests) || maxRequests < 1 || maxRequests > 200) throw new Error('GEMINI_MAX_REQUESTS must be 1..200');
-  if (!Number.isFinite(delayMs) || delayMs < 15000 || delayMs > 60000) throw new Error('GEMINI_DELAY_MS must be 15000..60000');
+  // 5s floor keeps us under the free-tier ~10 RPM even at the fastest setting; a 429
+  // still just pauses and the next run resumes. 400 ceiling covers a full period in one run.
+  if (!Number.isInteger(maxRequests) || maxRequests < 1 || maxRequests > 400) throw new Error('GEMINI_MAX_REQUESTS must be 1..400');
+  if (!Number.isFinite(delayMs) || delayMs < 5000 || delayMs > 60000) throw new Error('GEMINI_DELAY_MS must be 5000..60000');
   return { apiKey: env.GEMINI_API_KEY, maxRequests, delayMs };
 }
 
