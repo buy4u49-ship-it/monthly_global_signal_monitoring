@@ -82,15 +82,27 @@ export function separateVerifiedQuotes(article, decisions) {
 
 // Diagnostic data is never imported as a review. Keep only evidence-related
 // fields, not provider bodies, thoughts, summaries, headers or error messages.
-function quoteDiagnostics(article, decisions, apiKey) {
+const textLength = value => (typeof value === 'string' ? value.trim().length : null);
+
+function quoteDiagnostics(article, decisions, apiKey, validationMessage = null) {
   const evidence = article.evidence.map((text, index) => ({ index, text, normalized: normalizeQuote(text) }));
   const detail = {
     company: article.company, url: article.url, title: article.title,
+    ...(validationMessage ? { validation_message: validationMessage } : {}),
     expected_candidate_ids: article.candidates.map(c => c.id),
+    expected_kinds: Object.fromEntries(article.candidates.map(c => [c.id, c.kind])),
     evidence_blocks: evidence,
     decisions: decisions.map((d, decision_index) => ({
       decision_index,
       candidate_id: typeof d.candidate_id === 'string' ? d.candidate_id : null,
+      // enum·불리언은 그대로, 자유 텍스트는 길이만. 어느 검증이 깨졌는지 이걸로 좁힌다.
+      event_stage: typeof d.event_stage === 'string' ? d.event_stage : null,
+      quality: typeof d.quality === 'string' ? d.quality : null,
+      booleans: Object.fromEntries(['entity_supported', 'target_technology_supported', 'indicator_supported', 'leading_indicator_supported']
+        .map(k => [k, typeof d[k] === 'boolean' ? d[k] : `(${typeof d[k]})`])),
+      reason_ko_length: textLength(d.reason_ko),
+      summary_ko_length: textLength(d.summary_ko),
+      summary_en_length: textLength(d.summary_en),
       quotes_is_array: Array.isArray(d.evidence_quotes),
       quotes: Array.isArray(d.evidence_quotes) ? d.evidence_quotes.map((quote, quote_index) => {
         if (typeof quote !== 'string') return { quote_index, invalid_type: quote === null ? 'null' : typeof quote };
@@ -147,7 +159,8 @@ export async function requestReview(article, policy, apiKey, fetchImpl = fetch, 
   try { importReview(article, review); } catch (error) {
     const failure = invalid(/evidence_quotes/.test(error.message) ? 'evidence_mismatch'
       : /needs an evidence quote/.test(error.message) ? 'missing_evidence' : 'review_validation');
-    failure.diagnostic = quoteDiagnostics(article, parsed.decisions, apiKey);
+    // importReview 의 메시지는 우리가 만든 문구다. 회사명과 후보 id 만 담고 모델 출력은 담지 않는다.
+    failure.diagnostic = quoteDiagnostics(article, parsed.decisions, apiKey, error.message);
     throw failure;
   }
   return review;

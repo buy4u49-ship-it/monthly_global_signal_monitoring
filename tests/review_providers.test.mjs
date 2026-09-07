@@ -107,3 +107,28 @@ test('an auth failure can be diagnosed without printing the key', () => {
 test('a pasted key with surrounding whitespace still authenticates', () => {
   assert.equal(configuration({ REPORT_PROVIDER: 'nvidia', OPENAI_API_KEY: '  nvapi-abc\n' }, NVIDIA).apiKey, 'nvapi-abc');
 });
+
+test('a non-quote validation failure records what actually broke', async t => {
+  const fs = await import('node:fs/promises');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { reviewArticles } = await import('../scripts/gemini_report.mjs');
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'validation-diagnostics-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  // 투자 후보에 not_applicable 은 스키마상 허용되지만 판정 계약에서는 거부된다.
+  const broken = [{ ...decisions[0], event_stage: 'not_applicable', reason_ko: '사유', summary_ko: '요약문', summary_en: 'summary' }];
+  // reviewArticles 는 환경이 정한 기본 프로바이더(Gemini)를 쓰므로 응답도 그 형식이어야 한다.
+  const geminiShaped = () => new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ decisions: broken }) }] } }] }));
+  const state = await reviewArticles({
+    articles: [article('Broken')], reviewDir, policy: '', config: { apiKey: 'k', maxRequests: 1, delayMs: 0 },
+    sleep: async () => {}, fetchImpl: async () => geminiShaped(),
+  });
+  assert.equal(state.diagnostics.length, 1);
+  const detail = JSON.parse(await fs.readFile(path.join(path.dirname(reviewDir), state.diagnostics[0].file), 'utf8'));
+  assert.match(detail.validation_message, /invalid event_stage/);
+  assert.equal(detail.decisions[0].event_stage, 'not_applicable');
+  assert.equal(detail.expected_kinds['investment:2'], 'investment');
+  assert.equal(detail.decisions[0].reason_ko_length, 2);
+  // 자유 텍스트 본문은 길이만 남고 내용은 남지 않는다.
+  assert.equal(JSON.stringify(detail).includes('요약문'), false);
+});
