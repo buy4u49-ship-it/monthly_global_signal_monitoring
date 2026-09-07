@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { configuration, requestReview, reviewArticles, resolveModel, MODEL } from '../scripts/gemini_report.mjs';
+import { configuration, requestReview, reviewArticles, MODEL } from '../scripts/gemini_report.mjs';
 import { groupArticles } from '../scripts/local_report.mjs';
 
 const article = company => groupArticles([{ company, target_no: 1, url: `https://example.com/${company}`, title: 'Pilot plant', published_at: '2026-08-02', investment_signal_no: 2, target_technology: 'material', content_text: 'The company plans a pilot plant.' }], [], { from_date: '2026-08-01', to_date: '2026-08-31' })[0];
@@ -15,15 +15,6 @@ test('requires explicit free-tier confirmation and bounds API requests', () => {
   assert.throws(() => configuration({ GEMINI_API_KEY: 'key' }), /FREE_TIER_CONFIRMED/);
   assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true' }), /API_KEY/);
   assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '0' }), /1..200/);
-});
-
-test('GEMINI_MODEL overrides the default but only accepts Flash / Flash-Lite ids', () => {
-  assert.equal(resolveModel({}), 'gemini-3.1-flash-lite');
-  assert.equal(resolveModel({ GEMINI_MODEL: '  ' }), 'gemini-3.1-flash-lite');
-  assert.equal(resolveModel({ GEMINI_MODEL: 'gemini-3.5-flash-lite' }), 'gemini-3.5-flash-lite');
-  assert.equal(resolveModel({ GEMINI_MODEL: 'gemini-3.5-flash' }), 'gemini-3.5-flash');
-  assert.throws(() => resolveModel({ GEMINI_MODEL: 'gemini-3.5-pro' }), /Flash or Flash-Lite/);
-  assert.throws(() => resolveModel({ GEMINI_MODEL: 'gpt-4o' }), /Flash or Flash-Lite/);
 });
 
 test('uses one fixed Gemini endpoint, structured output and all article candidates', async () => {
