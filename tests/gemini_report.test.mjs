@@ -156,6 +156,54 @@ test('503 recovers automatically with cached progress and retries obey budget', 
   assert.equal(limited.requests, 1);
 });
 
+test('quote failure artifacts retain both attempts, original evidence and normalized comparisons without secrets', async t => {
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-diagnostics-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  const a = article('Diagnostic');
+  a.evidence.push('Company’s capacity is 10 tonnes.');
+  const args = { articles: [a], reviewDir, policy: '', config, sleep: async () => {} };
+  const invalid = [{ ...decisions[0], summary_en: 'DO NOT SAVE SUMMARY', evidence_quotes: [
+    "Company's capacity is 10 tonnes.", 'Capacity is 100 tonnes. test-key',
+  ] }];
+  const state = await reviewArticles({ ...args, fetchImpl: async () => response(invalid) });
+  assert.equal(state.diagnostics.length, 2);
+  assert.notEqual(state.diagnostics[0].file, state.diagnostics[1].file);
+  const readDiagnostic = async item => JSON.parse(await fs.readFile(path.join(path.dirname(reviewDir), item.file), 'utf8'));
+  const detail = await readDiagnostic(state.diagnostics[0]);
+  assert.equal(detail.reason, 'evidence_mismatch');
+  assert.equal(detail.decisions[0].candidate_id, 'investment:2');
+  assert.equal(detail.decisions[0].quotes[0].quote, "Company's capacity is 10 tonnes.");
+  assert.deepEqual(detail.decisions[0].quotes[0].matching_block_indices, [2]);
+  assert.deepEqual(detail.decisions[0].quotes[1].matching_block_indices, []);
+  assert.equal(detail.evidence_blocks[2].text, 'Company’s capacity is 10 tonnes.');
+  assert.equal(JSON.stringify(detail).includes('test-key'), false);
+  assert.equal(JSON.stringify(detail).includes('DO NOT SAVE SUMMARY'), false);
+  assert.equal(JSON.stringify(state).includes('Capacity is'), false);
+  await assert.rejects(fs.access(path.join(reviewDir, `${a.id}.json`)));
+  const again = await reviewArticles({ ...args, fetchImpl: async () => response(invalid) });
+  assert.notEqual(again.diagnostics[0].file, state.diagnostics[0].file);
+  assert.deepEqual(await readDiagnostic(state.diagnostics[0]), detail);
+  const recovered = await reviewArticles({ ...args, fetchImpl: async () => response() });
+  assert.equal(recovered.status, 'completed');
+  assert.deepEqual(recovered.diagnostics, []);
+  const cached = await reviewArticles({ ...args, fetchImpl: async () => { throw new Error('must use cache'); } });
+  assert.equal(cached.cached, 1);
+});
+
+test('missing and malformed quotes produce readable diagnostics without saving arbitrary objects', async t => {
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-diagnostics-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  for (const quotes of [[], null, [{ secret: 'private object' }]]) {
+    const state = await reviewArticles({ articles: [article('Missing')], reviewDir, policy: '', config: { ...config, maxRequests: 1 },
+      fetchImpl: async () => response([{ ...decisions[0], evidence_quotes: quotes }]) });
+    assert.equal(state.diagnostics.length, 1);
+    const content = await fs.readFile(path.join(path.dirname(reviewDir), state.diagnostics[0].file), 'utf8');
+    assert.equal(content.includes('private object'), false);
+    const detail = JSON.parse(content);
+    assert.equal(detail.decisions[0].quotes_is_array, Array.isArray(quotes));
+  }
+});
+
 test('business non-applicable fields are constants without bypassing the activity gate', async () => {
   const original = article('A').candidates[0].row;
   const a = groupArticles([], [original], { from_date: '2026-08-01', to_date: '2026-08-31' })[0];

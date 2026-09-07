@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { sourceCandidates, groupArticles, importReview, build } from './local_report.mjs';
+import { sourceCandidates, groupArticles, importReview, normalizeQuote, build } from './local_report.mjs';
 
 // Free-tier Flash-Lite. "Free of charge" on the 2026-09-07 price list; the free-tier
 // project, not this name, is what prevents billing. If a run pauses with a 503/404,
@@ -45,6 +45,31 @@ const decisionProperties = {
 
 function invalidResponse(code) {
   return Object.assign(new Error(`Gemini invalid response: ${code}`), { response_code: code });
+}
+
+// Diagnostic data is never imported as a review. Keep only evidence-related
+// fields, not provider bodies, thoughts, summaries, headers or error messages.
+function quoteDiagnostics(article, decisions, apiKey) {
+  const evidence = article.evidence.map((text, index) => ({ index, text, normalized: normalizeQuote(text) }));
+  const detail = {
+    company: article.company, url: article.url, title: article.title,
+    expected_candidate_ids: article.candidates.map(c => c.id),
+    evidence_blocks: evidence,
+    decisions: decisions.map((d, decision_index) => ({
+      decision_index,
+      candidate_id: typeof d.candidate_id === 'string' ? d.candidate_id : null,
+      quotes_is_array: Array.isArray(d.evidence_quotes),
+      quotes: Array.isArray(d.evidence_quotes) ? d.evidence_quotes.map((quote, quote_index) => {
+        if (typeof quote !== 'string') return { quote_index, invalid_type: quote === null ? 'null' : typeof quote };
+        const normalized = normalizeQuote(quote);
+        return { quote_index, quote, normalized,
+          matching_block_indices: normalized ? evidence.filter(block => block.normalized.includes(normalized)).map(block => block.index) : [] };
+      }) : [],
+    })),
+  };
+  // Redact the configured key even if it unexpectedly appears in supplied text.
+  return JSON.parse(JSON.stringify(detail, (_, value) => typeof value === 'string' && apiKey
+    ? value.split(apiKey).join('[REDACTED]') : value));
 }
 
 export async function requestReview(article, policy, apiKey, fetchImpl = fetch, retry = false) {
@@ -95,8 +120,10 @@ export async function requestReview(article, policy, apiKey, fetchImpl = fetch, 
       ? { ...decision, leading_indicator_supported: true, event_stage: 'not_applicable' } : decision);
   const review = { article_id: article.id, reviewer: `${MODEL}/${VERSION}`, provider: 'gemini', decisions: parsed.decisions, usage: payload.usageMetadata || {} };
   try { importReview(article, review); } catch (error) {
-    throw invalidResponse(/evidence_quotes/.test(error.message) ? 'evidence_mismatch'
+    const failure = invalidResponse(/evidence_quotes/.test(error.message) ? 'evidence_mismatch'
       : /needs an evidence quote/.test(error.message) ? 'missing_evidence' : 'review_validation');
+    failure.diagnostic = quoteDiagnostics(article, parsed.decisions, apiKey);
+    throw failure;
   }
   return review;
 }
@@ -104,7 +131,8 @@ export async function requestReview(article, policy, apiKey, fetchImpl = fetch, 
 export async function reviewArticles({ articles, reviewDir, policy, config, fetchImpl = fetch, sleep = ms => new Promise(r => setTimeout(r, ms)), random = Math.random }) {
   let requests = 0, cached = 0, completed = 0;
   const failed = [];
-  const state = extra => ({ requests, cached, completed, total: articles.length, failed_articles: failed, ...extra });
+  const diagnostics = [];
+  const state = extra => ({ requests, cached, completed, total: articles.length, failed_articles: failed, diagnostics, ...extra });
   for (const article of articles) {
     const file = path.join(reviewDir, `${article.id}.json`);
     try {
@@ -136,6 +164,13 @@ export async function reviewArticles({ articles, reviewDir, policy, config, fetc
         if (error.status === 429 || error.status >= 500) return state({ status: 'paused', reason: error.status === 429 ? 'quota' : 'provider_unavailable', http_status: error.status, provider_reason: error.provider_reason });
         if (error.transport_error) return state({ status: 'paused', reason: 'transport_error' });
         if (!error.response_code) throw error;
+        const diagnosticPath = `${path.basename(reviewDir)}/diagnostics/${article.id}/${crypto.randomUUID()}-attempt-${attempt + 1}.json`;
+        await write(path.join(path.dirname(reviewDir), diagnosticPath), {
+          schema_version: 1, article_id: article.id, model: MODEL,
+          created_at: new Date().toISOString(), attempt: attempt + 1,
+          reason: error.response_code, ...(error.diagnostic || {}),
+        });
+        diagnostics.push({ article_id: article.id, attempt: attempt + 1, reason: error.response_code, file: diagnosticPath });
         const failure = { article_id: article.id, reason: error.response_code };
         console.log(`Article ${article.id}: ${error.response_code} (attempt ${attempt + 1}/2)`);
         if (attempt === 1) failed.push(failure);
@@ -190,7 +225,8 @@ async function main() {
   if (process.env.GITHUB_STEP_SUMMARY) await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,
     `### Gemini report\n${state.status}: ${state.completed}/${state.total} articles; ${state.requests} API requests; ${state.cached} cached.\n` +
     (state.status === 'paused' ? `Reason: ${state.reason}. Saved progress; rerun the same dates with refresh=false. For quota/provider errors, wait for recovery first. Existing published PDFs are unchanged.\n` : '') +
-    state.failed_articles.map(item => `- Article ${item.article_id}: ${item.reason}\n`).join(''));
+    state.failed_articles.map(item => `- Article ${item.article_id}: ${item.reason}\n`).join('') +
+    state.diagnostics.map(item => `- Diagnostic in progress artifact: ${item.file} (${item.reason})\n`).join(''));
   if (state.status !== 'completed') { process.exitCode = 75; return; }
   const reportDir = await build({ runDir, issueNumber: process.env.REPORT_ISSUE_NUMBER || '2' });
   const investment = await read(path.join(reportDir, 'investment.json'));
