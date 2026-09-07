@@ -14,6 +14,7 @@ const config = { apiKey: 'test-key', maxRequests: 40, delayMs: 15000 };
 test('requires explicit free-tier confirmation and bounds API requests', () => {
   assert.throws(() => configuration({ GEMINI_API_KEY: 'key' }), /FREE_TIER_CONFIRMED/);
   assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true' }), /API_KEY/);
+  assert.deepEqual(configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key' }), { apiKey: 'key', maxRequests: 400, delayMs: 4500 });
   assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '0' }), /1..400/);
   assert.throws(() => configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_DELAY_MS: '3999' }), /4000..60000/);
   assert.deepEqual(configuration({ GEMINI_FREE_TIER_CONFIRMED: 'true', GEMINI_API_KEY: 'key', GEMINI_MAX_REQUESTS: '400', GEMINI_DELAY_MS: '4500' }), { apiKey: 'key', maxRequests: 400, delayMs: 4500 });
@@ -57,27 +58,102 @@ test('request budget pauses without fallback and corrupt evidence is never cache
   const state = await reviewArticles({ articles, reviewDir, policy: '', config: { ...config, maxRequests: 1 }, fetchImpl: async () => response() });
   assert.equal(state.reason, 'request_budget');
   assert.equal(state.requests, 1);
-  await assert.rejects(reviewArticles({ articles: [articles[1]], reviewDir, policy: '', config, fetchImpl: async () => response([{ ...decisions[0], evidence_quotes: ['Invented quote'] }]) }), /exact passages/);
+  const invalid = await reviewArticles({ articles: [articles[1]], reviewDir, policy: '', config, sleep: async () => {}, fetchImpl: async () => response([{ ...decisions[0], evidence_quotes: ['Invented quote'] }]) });
+  assert.equal(invalid.reason, 'invalid_responses');
+  assert.equal(invalid.requests, 2);
+  assert.deepEqual(invalid.failed_articles, [{ article_id: articles[1].id, reason: 'evidence_mismatch' }]);
   await assert.rejects(fs.access(path.join(reviewDir, `${articles[1].id}.json`)));
 });
 
 test('authentication failures and truncated responses fail closed', async () => {
   await assert.rejects(requestReview(article('A'), '', 'key', async () => new Response('secret detail', { status: 403 })), /^Error: Gemini HTTP 403$/);
-  await assert.rejects(requestReview(article('A'), '', 'key', async () => response(decisions, 'MAX_TOKENS')), /incomplete response/);
+  await assert.rejects(requestReview(article('A'), '', 'key', async () => response(decisions, 'MAX_TOKENS')), /incomplete_response/);
 });
 
-test('provider outages expose only the HTTP code and safe reason, and stop after one request', async t => {
+test('invalid article retries once, later articles are saved, and resume repairs only the failed article', async t => {
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  const articles = [article('Bad'), article('Good')];
+  let calls = 0;
+  const delays = [];
+  const first = await reviewArticles({ articles, reviewDir, policy: '', config,
+    sleep: async ms => delays.push(ms), fetchImpl: async (_, init) => {
+      const body = JSON.parse(init.body);
+      calls++;
+      if (calls === 2) assert.match(body.contents[0].parts[1].text, /Copy evidence_quotes verbatim/);
+      return calls <= 2 ? response([]) : response();
+    } });
+  assert.equal(first.status, 'paused');
+  assert.equal(first.completed, 1);
+  assert.equal(first.requests, 3);
+  assert.deepEqual(delays, [15000, 15000]);
+  await assert.rejects(fs.access(path.join(reviewDir, `${articles[0].id}.json`)));
+  const resumed = await reviewArticles({ articles, reviewDir, policy: '', config, fetchImpl: async () => response() });
+  assert.equal(resumed.status, 'completed');
+  assert.equal(resumed.cached, 1);
+  assert.equal(resumed.requests, 1);
+});
+
+test('retry respects request budget and quota; authentication still fails immediately', async t => {
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  const args = { articles: [article('A')], reviewDir, policy: '', config, sleep: async () => {} };
+  let calls = 0;
+  const limited = await reviewArticles({ ...args, config: { ...config, maxRequests: 1 }, fetchImpl: async () => { calls++; return response([]); } });
+  assert.equal(limited.reason, 'request_budget');
+  assert.equal(calls, 1);
+  calls = 0;
+  const quota = await reviewArticles({ ...args, fetchImpl: async () => ++calls === 1 ? response([]) : new Response('', { status: 429 }) });
+  assert.equal(quota.reason, 'quota');
+  assert.equal(quota.requests, 2);
+  calls = 0;
+  await assert.rejects(reviewArticles({ ...args, fetchImpl: async () => { calls++; return new Response('', { status: 403 }); } }), /HTTP 403/);
+  assert.equal(calls, 1);
+});
+
+test('malformed or truncated output recovers on retry without caching the bad response', async t => {
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  for (const [index, bad] of [() => response(decisions, 'MAX_TOKENS'), () => new Response('null'),
+    () => new Response('{'), () => response([null]), () => response([{ ...decisions[0], evidence_quotes: [] }])].entries()) {
+    let calls = 0;
+    const result = await reviewArticles({ articles: [article(`A${index}`)], reviewDir, policy: '', config,
+      sleep: async () => {}, fetchImpl: async () => ++calls === 1 ? bad() : response() });
+    assert.equal(result.status, 'completed');
+    assert.equal(result.requests, 2);
+  }
+});
+
+test('persistent provider outages use bounded backoff and expose only safe diagnostics', async t => {
   const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
   t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
   let calls = 0;
-  const state = await reviewArticles({ articles: [article('A')], reviewDir, policy: '', config, fetchImpl: async () => {
+  const delays = [];
+  const state = await reviewArticles({ articles: [article('A')], reviewDir, policy: '', config, random: () => 0, sleep: async ms => delays.push(ms), fetchImpl: async () => {
     calls++;
     return new Response(JSON.stringify({ error: { message: 'High demand; private provider detail' } }), { status: 503 });
   } });
-  assert.equal(calls, 1);
+  assert.equal(calls, 3);
+  assert.deepEqual(delays, [15000, 30000]);
   assert.equal(state.http_status, 503);
   assert.equal(state.provider_reason, 'capacity');
   assert.equal(JSON.stringify(state).includes('private provider detail'), false);
+});
+
+test('503 recovers automatically with cached progress and retries obey budget', async t => {
+  const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-review-'));
+  t.after(() => fs.rm(reviewDir, { recursive: true, force: true }));
+  const a = article('Cached'), b = article('Pending');
+  const args = { reviewDir, policy: '', config, sleep: async () => {}, random: () => 0 };
+  await reviewArticles({ ...args, articles: [a], fetchImpl: async () => response() });
+  let calls = 0;
+  const recovered = await reviewArticles({ ...args, articles: [a, b], fetchImpl: async () => ++calls === 1 ? new Response('', { status: 503 }) : response() });
+  assert.equal(recovered.status, 'completed');
+  assert.equal(recovered.cached, 1);
+  assert.equal(recovered.requests, 2);
+  const limited = await reviewArticles({ ...args, articles: [article('Budget')], config: { ...config, maxRequests: 1 }, fetchImpl: async () => new Response('', { status: 503 }) });
+  assert.equal(limited.reason, 'request_budget');
+  assert.equal(limited.requests, 1);
 });
 
 test('business non-applicable fields are constants without bypassing the activity gate', async () => {

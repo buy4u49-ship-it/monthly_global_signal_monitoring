@@ -20,6 +20,14 @@ on:
         required: false
         default: "2"
 
+      gemini_max_requests:
+        description: "Maximum API requests including retries (1-400)"
+        type: string
+        default: "400"
+      gemini_delay_ms:
+        description: "Delay between API requests in milliseconds (4000-60000)"
+        type: string
+        default: "4500"
       refresh:
         description: "Recollect sources instead of resuming the saved collection"
         type: boolean
@@ -89,8 +97,8 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED }}
-          GEMINI_MAX_REQUESTS: ${{ vars.GEMINI_MAX_REQUESTS || '40' }}
-          GEMINI_DELAY_MS: ${{ vars.GEMINI_DELAY_MS || '15000' }}
+          GEMINI_MAX_REQUESTS: ${{ inputs.gemini_max_requests || vars.GEMINI_MAX_REQUESTS || '400' }}
+          GEMINI_DELAY_MS: ${{ inputs.gemini_delay_ms || vars.GEMINI_DELAY_MS || '4500' }}
           REPORT_FROM_DATE: ${{ steps.report_period.outputs.from_date }}
           REPORT_TO_DATE: ${{ steps.report_period.outputs.to_date }}
           REPORT_ISSUE_NUMBER: ${{ inputs.issue_number || '2' }}

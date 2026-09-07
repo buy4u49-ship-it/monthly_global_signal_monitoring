@@ -24,8 +24,8 @@ export function configuration(env = process.env) {
     throw new Error('Set GEMINI_FREE_TIER_CONFIRMED=true only after confirming this key belongs to a Google project with no paid billing. The API cannot enforce free-tier billing.');
   }
   if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required');
-  const maxRequests = Number(env.GEMINI_MAX_REQUESTS || 40);
-  const delayMs = Number(env.GEMINI_DELAY_MS || 15000);
+  const maxRequests = Number(env.GEMINI_MAX_REQUESTS || 400);
+  const delayMs = Number(env.GEMINI_DELAY_MS || 4500);
   // 4s floor is one request every 4s; observed free-tier limit for this model is 15 RPM,
   // so 4500ms is the safe working value and 4000 the edge. A 429 still just pauses and the
   // next run resumes. 400 ceiling covers a full period in one run.

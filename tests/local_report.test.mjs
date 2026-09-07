@@ -74,6 +74,18 @@ test("only supported decisions need bilingual prose; rejection does not become a
   assert.equal(importReview(a, review(a))[0].row.ai_summary_source, "local_agent_review");
 });
 
+test('quote matching accepts typography and entities but rejects paraphrases, changed numbers and cross-block joins', () => {
+  const a = article();
+  a.evidence = ['Japan’s CCS hub uses Mizushima&rsquo;s strengths &amp; CO₂&#160;capture—planned.', 'Capacity is 10 tonnes.', 'Separate block.'];
+  const original = JSON.stringify(a);
+  const check = quote => importReview(a, review(a, [decision({ evidence_quotes: [quote] })]));
+  assert.equal(check("Japan's CCS hub uses Mizushima's strengths & CO2 capture-planned.")[0].supported, true);
+  for (const quote of ['Capacity is 100 tonnes.', 'Japan has a CCS hub', '10 tonnes. Separate block.', '&nbsp;', 10]) {
+    assert.throws(() => check(quote), /exact passages/);
+  }
+  assert.equal(JSON.stringify(a), original);
+});
+
 test("relevance exemption never bypasses entity or leading-event requirements", () => {
   const a = groupArticles([{ ...source, excluded_from_relevance: true }], [], period)[0];
   assert.equal(importReview(a, review(a, [decision({ target_technology_supported: false })]))[0].supported, true);
