@@ -78,7 +78,7 @@ jobs:
           echo "to_date=$to_date" >> "$GITHUB_OUTPUT"
           echo "Reporting period: $from_date .. $to_date"
       - name: Restore Gemini progress
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: outputs/gemini_work
           key: gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -98,13 +98,13 @@ jobs:
         run: node scripts/gemini_report.mjs
       - name: Save Gemini progress even when quota is exhausted
         if: ${{ always() && steps.gemini.outcome != 'skipped' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: outputs/gemini_work
           key: gemini-v1-${{ github.ref_name }}-${{ steps.report_period.outputs.from_date }}-${{ steps.report_period.outputs.to_date }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Upload progress and results for inspection
         if: ${{ always() && steps.gemini.outcome != 'skipped' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gemini-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: outputs/gemini_work
@@ -113,7 +113,7 @@ jobs:
       - name: Validate report inputs
         run: node scripts/validate_report_inputs.mjs
       - name: Downloadable bilingual PDFs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: monthly-report-pdfs-${{ github.run_id }}
           path: public/reports/latest_report*.pdf
